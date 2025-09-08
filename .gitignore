@@ -1,0 +1,9 @@
+.agent-memory/
+build/
+*.o
+*.a
+*.so
+*.dylib
+fuzz/.verify-build/
+fuzz/inputs/
+.DS_Store
