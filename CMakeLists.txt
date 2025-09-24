@@ -19,11 +19,7 @@ add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wstrict-prototypes
 add_library(vaultpack
     src/util.c
     src/error.c
-    src/archive.c
-    src/section.c
-    src/metadata.c
-    src/index.c
-    src/extract.c)
+    src/archive.c)
 
 target_include_directories(vaultpack
     PUBLIC

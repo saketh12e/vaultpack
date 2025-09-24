@@ -50,6 +50,8 @@ typedef struct vp_archive {
     uint32_t          meta_total;
 } vp_archive_t;
 
+int vp_check_header(const uint8_t *data, size_t size);
+
 #ifdef __cplusplus
 }
 #endif
