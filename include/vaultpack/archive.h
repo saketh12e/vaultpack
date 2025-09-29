@@ -51,6 +51,8 @@ typedef struct vp_archive {
 } vp_archive_t;
 
 int vp_check_header(const uint8_t *data, size_t size);
+int vp_open_archive(const uint8_t *data, size_t size, vp_archive_t **out);
+void vp_close_archive(vp_archive_t *arc);
 
 #ifdef __cplusplus
 }
