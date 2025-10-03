@@ -110,3 +110,18 @@ void vp_close_archive(vp_archive_t *arc)
     free(arc->meta_flat);
     free(arc);
 }
+
+void vp_dir_iter_init(vp_dir_iter_t *it, const vp_archive_t *arc)
+{
+    if (!it)
+        return;
+    it->arc = arc;
+    it->pos = 0;
+}
+
+const vp_dir_entry_t *vp_dir_next(vp_dir_iter_t *it)
+{
+    if (!it || !it->arc || it->pos >= it->arc->dir_count)
+        return NULL;
+    return &it->arc->dir[it->pos++];
+}

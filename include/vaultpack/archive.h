@@ -54,6 +54,14 @@ int vp_check_header(const uint8_t *data, size_t size);
 int vp_open_archive(const uint8_t *data, size_t size, vp_archive_t **out);
 void vp_close_archive(vp_archive_t *arc);
 
+typedef struct vp_dir_iter {
+    const vp_archive_t *arc;
+    uint32_t           pos;
+} vp_dir_iter_t;
+
+void vp_dir_iter_init(vp_dir_iter_t *it, const vp_archive_t *arc);
+const vp_dir_entry_t *vp_dir_next(vp_dir_iter_t *it);
+
 #ifdef __cplusplus
 }
 #endif
