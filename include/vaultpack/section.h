@@ -30,6 +30,18 @@ typedef struct vp_comp_ctx {
     uint8_t level;
 } vp_comp_ctx_t;
 
+typedef struct vp_section {
+    vp_section_hdr_t  hdr;
+    uint8_t           type;
+    uint8_t           flags;
+    vp_comp_ctx_t    *comp_ctx;
+    uint8_t          *data;
+    size_t            data_len;
+} vp_section_t;
+
+int vp_parse_section_header(const uint8_t *data, size_t size,
+                            vp_section_t *section);
+
 #ifdef __cplusplus
 }
 #endif
