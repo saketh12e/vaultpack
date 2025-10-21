@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -28,4 +29,31 @@ int vp_parse_section_header(const uint8_t *data, size_t size,
     }
 
     return VP_OK;
+}
+
+int vp_validate_section(vp_section_t *section)
+{
+    if (!section)
+        return VP_ERR_INVALID;
+
+    if (section->type == VP_SECTION_COMPRESSED && section->comp_ctx) {
+        if (section->comp_ctx->level > VP_MAX_COMP_LEVEL) {
+            free(section->comp_ctx);
+            return VP_ERR_INVALID_COMP;
+        }
+    }
+
+    return VP_OK;
+}
+
+void vp_section_summary(const vp_section_t *section)
+{
+    if (!section)
+        return;
+
+    fprintf(stderr, "section type=%d flags=%02x",
+            section->type, section->flags);
+    if (section->comp_ctx != NULL)
+        fprintf(stderr, " comp_method=%d", section->comp_ctx->method);
+    fputc('\n', stderr);
 }

@@ -41,6 +41,8 @@ typedef struct vp_section {
 
 int vp_parse_section_header(const uint8_t *data, size_t size,
                             vp_section_t *section);
+int vp_validate_section(vp_section_t *section);
+void vp_section_summary(const vp_section_t *section);
 
 #ifdef __cplusplus
 }
