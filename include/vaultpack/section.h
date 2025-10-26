@@ -43,6 +43,9 @@ int vp_parse_section_header(const uint8_t *data, size_t size,
                             vp_section_t *section);
 int vp_validate_section(vp_section_t *section);
 void vp_section_summary(const vp_section_t *section);
+void vp_section_cleanup(vp_section_t *section);
+int vp_fill_section_data(vp_section_t *section, const uint8_t *payload,
+                         size_t len);
 
 #ifdef __cplusplus
 }

@@ -57,3 +57,35 @@ void vp_section_summary(const vp_section_t *section)
         fprintf(stderr, " comp_method=%d", section->comp_ctx->method);
     fputc('\n', stderr);
 }
+
+int vp_fill_section_data(vp_section_t *section, const uint8_t *payload,
+                         size_t len)
+{
+    if (!section)
+        return VP_ERR_INVALID;
+
+    uint32_t need = section->hdr.comp_size;
+    if (need > len)
+        return VP_ERR_TRUNCATED;
+
+    if (!section->data) {
+        section->data = malloc(need);
+        if (!section->data)
+            return VP_ERR_NOMEM;
+    }
+
+    memcpy(section->data, payload, need);
+    section->data_len = need;
+    return VP_OK;
+}
+
+void vp_section_cleanup(vp_section_t *section)
+{
+    if (!section)
+        return;
+    free(section->comp_ctx);
+    free(section->data);
+    section->comp_ctx = NULL;
+    section->data = NULL;
+    section->data_len = 0;
+}
