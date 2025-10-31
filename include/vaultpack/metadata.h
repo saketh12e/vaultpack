@@ -13,6 +13,19 @@ typedef struct vp_meta_entry {
     char value[40];
 } vp_meta_entry_t;
 
+typedef struct vp_meta_block_hdr {
+    uint8_t  tag[4];
+    uint16_t key_count;
+    uint16_t reserved;
+} vp_meta_block_hdr_t;
+
+typedef struct vp_meta_block {
+    uint8_t           tag[4];
+    uint16_t          key_count;
+    uint16_t          reserved;
+    vp_meta_entry_t  *entries;
+} vp_meta_block_t;
+
 #ifdef __cplusplus
 }
 #endif
