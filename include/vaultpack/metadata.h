@@ -26,6 +26,9 @@ typedef struct vp_meta_block {
     vp_meta_entry_t  *entries;
 } vp_meta_block_t;
 
+int vp_read_metadata_block(const uint8_t *data, size_t size,
+                           vp_meta_block_t **out);
+
 #ifdef __cplusplus
 }
 #endif

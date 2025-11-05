@@ -20,7 +20,8 @@ add_library(vaultpack
     src/util.c
     src/error.c
     src/archive.c
-    src/section.c)
+    src/section.c
+    src/metadata.c)
 
 target_include_directories(vaultpack
     PUBLIC
