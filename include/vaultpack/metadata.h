@@ -28,6 +28,9 @@ typedef struct vp_meta_block {
 
 int vp_read_metadata_block(const uint8_t *data, size_t size,
                            vp_meta_block_t **out);
+const vp_meta_entry_t *vp_metadata_lookup(const vp_meta_block_t *block,
+                                          const char *key);
+void vp_process_meta_block(vp_meta_block_t *block, void *ctx);
 
 #ifdef __cplusplus
 }

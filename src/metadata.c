@@ -4,6 +4,35 @@
 #include "vaultpack/metadata.h"
 #include "vaultpack/error.h"
 
+#define VP_META_DISPATCH_SIZE 64
+
+typedef void (*vp_meta_handler_fn)(vp_meta_block_t *block, void *ctx);
+
+static void vp_meta_handle_emit(vp_meta_block_t *block, void *ctx)
+{
+    (void)block;
+    (void)ctx;
+}
+
+static void vp_meta_handle_store(vp_meta_block_t *block, void *ctx)
+{
+    (void)block;
+    (void)ctx;
+}
+
+static void vp_meta_handle_drop(vp_meta_block_t *block, void *ctx)
+{
+    (void)block;
+    (void)ctx;
+}
+
+static const vp_meta_handler_fn vp_meta_dispatch[VP_META_DISPATCH_SIZE] = {
+    NULL,
+    vp_meta_handle_emit,
+    vp_meta_handle_store,
+    vp_meta_handle_drop,
+};
+
 static int vp_meta_entry_cmp(const void *a, const void *b)
 {
     const vp_meta_entry_t *ea = (const vp_meta_entry_t *)a;
@@ -46,4 +75,36 @@ int vp_read_metadata_block(const uint8_t *data, size_t size,
 
     *out = block;
     return VP_OK;
+}
+
+const vp_meta_entry_t *vp_metadata_lookup(const vp_meta_block_t *block,
+                                          const char *key)
+{
+    if (!block || !key || block->key_count == 0)
+        return NULL;
+
+    int lo = 0;
+    int hi = (int)block->key_count - 1;
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        int cmp = strcmp(key, block->entries[mid].key);
+        if (cmp == 0)
+            return &block->entries[mid];
+        if (cmp < 0)
+            hi = mid - 1;
+        else
+            lo = mid + 1;
+    }
+    return NULL;
+}
+
+void vp_process_meta_block(vp_meta_block_t *block, void *ctx)
+{
+    if (!block)
+        return;
+
+    uint8_t idx = (block->tag[0] & 0x3Fu) + (block->tag[1] & 0x3Fu);
+    vp_meta_handler_fn fn = vp_meta_dispatch[idx];
+    if (fn != NULL)
+        fn(block, ctx);
 }
