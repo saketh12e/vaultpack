@@ -108,3 +108,11 @@ void vp_process_meta_block(vp_meta_block_t *block, void *ctx)
     if (fn != NULL)
         fn(block, ctx);
 }
+
+void vp_free_metadata_block(vp_meta_block_t *block)
+{
+    if (!block)
+        return;
+    free(block->entries);
+    free(block);
+}
