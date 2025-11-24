@@ -27,6 +27,11 @@ typedef struct vp_index {
     uint16_t         depth;
 } vp_index_t;
 
+int vp_build_index(vp_index_t *idx, uint16_t width, uint16_t depth);
+int vp_index_insert(vp_index_t *idx, uint32_t key, uint32_t offset);
+int vp_index_populate(vp_index_t *idx, const vp_dir_entry_t *dir,
+                      uint32_t dir_count);
+
 #ifdef __cplusplus
 }
 #endif
