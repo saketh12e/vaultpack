@@ -98,3 +98,28 @@ int vp_index_populate(vp_index_t *idx, const vp_dir_entry_t *dir,
 
     return VP_OK;
 }
+
+int vp_index_lookup(const vp_index_t *idx, uint32_t key,
+                    vp_index_slot_t *out)
+{
+    if (!idx || !out)
+        return VP_ERR_INVALID;
+
+    for (uint32_t i = 0; i < idx->used; i++) {
+        if (idx->slots[i].key == key) {
+            *out = idx->slots[i];
+            return VP_OK;
+        }
+    }
+    return VP_ERR_INVALID;
+}
+
+void vp_index_destroy(vp_index_t *idx)
+{
+    if (!idx)
+        return;
+    free(idx->slots);
+    idx->slots    = NULL;
+    idx->capacity = 0;
+    idx->used     = 0;
+}
