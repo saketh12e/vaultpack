@@ -14,6 +14,9 @@ typedef struct vp_extract_ctx {
     size_t   out_len;
 } vp_extract_ctx_t;
 
+int vp_extract_section(vp_extract_ctx_t *ctx, const uint8_t *data,
+                       size_t size);
+
 #ifdef __cplusplus
 }
 #endif
