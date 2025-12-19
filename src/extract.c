@@ -37,3 +37,14 @@ int vp_extract_section(vp_extract_ctx_t *ctx, const uint8_t *data,
     ctx->out_len = sec.data_len;
     return VP_OK;
 }
+
+void vp_extract_cleanup(vp_extract_ctx_t *ctx)
+{
+    if (!ctx)
+        return;
+    if (ctx->out_buf) {
+        free(ctx->out_buf);
+        ctx->out_buf = NULL;
+    }
+    ctx->out_len = 0;
+}
