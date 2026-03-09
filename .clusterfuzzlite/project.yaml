@@ -1,0 +1,13 @@
+language: c++
+main_repo: '.'
+fuzzing_engines:
+  - libfuzzer
+sanitizers:
+  - address
+  - undefined
+fuzz_targets:
+  - archive_fuzzer
+  - section_fuzzer
+  - metadata_fuzzer
+  - index_fuzzer
+  - extract_fuzzer
