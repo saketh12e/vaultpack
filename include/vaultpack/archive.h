@@ -62,6 +62,9 @@ typedef struct vp_dir_iter {
 void vp_dir_iter_init(vp_dir_iter_t *it, const vp_archive_t *arc);
 const vp_dir_entry_t *vp_dir_next(vp_dir_iter_t *it);
 
+uint32_t vp_dir_count(const vp_archive_t *arc);
+const vp_dir_entry_t *vp_dir_at(const vp_archive_t *arc, uint32_t pos);
+
 #ifdef __cplusplus
 }
 #endif

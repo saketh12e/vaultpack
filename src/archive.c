@@ -125,3 +125,15 @@ const vp_dir_entry_t *vp_dir_next(vp_dir_iter_t *it)
         return NULL;
     return &it->arc->dir[it->pos++];
 }
+
+uint32_t vp_dir_count(const vp_archive_t *arc)
+{
+    return arc ? arc->dir_count : 0;
+}
+
+const vp_dir_entry_t *vp_dir_at(const vp_archive_t *arc, uint32_t pos)
+{
+    if (!arc || pos >= arc->dir_count)
+        return NULL;
+    return &arc->dir[pos];
+}
