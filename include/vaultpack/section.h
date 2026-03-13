@@ -4,13 +4,15 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "vaultpack/archive.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #define VP_MAGIC_SECT       0x54434553u /* "SECT" little-endian */
 #define VP_MAGIC_SECT_BYTES "SECT"
-#define VP_SECTION_HDR_SIZE 20
+#define VP_SECTION_HDR_SIZE 24
 #define VP_MAX_COMP_LEVEL   9
 
 typedef struct vp_section_hdr {

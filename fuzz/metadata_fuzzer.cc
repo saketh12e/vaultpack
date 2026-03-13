@@ -2,6 +2,7 @@
 #include <cstddef>
 
 #include "vaultpack/metadata.h"
+#include "vaultpack/error.h"
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     if (size < (int)sizeof(vp_meta_block_hdr_t))

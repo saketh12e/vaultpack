@@ -37,14 +37,14 @@ SRCS=(
 OBJS=()
 for src in "${SRCS[@]}"; do
     obj="$WORK/$(basename "$src" .c).o"
-    $CC $CFLAGS "${COMMON[@]}" -c "$src" -o "$obj"
+    $CC ${CFLAGS:-} "${COMMON[@]}" -c "$src" -o "$obj"
     OBJS+=("$obj")
 done
 
 FUZZERS=(archive_fuzzer section_fuzzer metadata_fuzzer index_fuzzer extract_fuzzer)
 
 for fuzzer in "${FUZZERS[@]}"; do
-    $CXX $CXXFLAGS "${COMMON[@]}" -std=c++17 \
+    $CXX ${CXXFLAGS:-} "${COMMON[@]}" -std=c++17 \
         "$SRC/fuzz/${fuzzer}.cc" "${OBJS[@]}" \
         -fsanitize=address,fuzzer \
         -o "$OUT/$fuzzer"

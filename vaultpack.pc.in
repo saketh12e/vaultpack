@@ -1,0 +1,11 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: vaultpack
+Description: Compact binary archive library for embedded/IoT firmware payloads
+Version: 0.1.0
+URL: https://github.com/saketh12e/vaultpack
+Libs: -L${libdir} -lvaultpack
+Cflags: -I${includedir}

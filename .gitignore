@@ -1,9 +1,21 @@
-.agent-memory/
-build/
+# Build artifacts
 *.o
 *.a
 *.so
 *.dylib
+/build/
+/dist/
+*.dSYM
+
+# Local fuzz verification work
 fuzz/.verify-build/
 fuzz/inputs/
+
+# Submitted PoC bytes — keep only the description.txt and agent memory
+fuzz/tasks/**/poc.bin
+
+# Agent memory — never push
+.agent-memory/
+
+# OS junk
 .DS_Store

@@ -5,6 +5,8 @@ fuzzing_engines:
 sanitizers:
   - address
   - undefined
+architectures:
+  - x86_64
 fuzz_targets:
   - archive_fuzzer
   - section_fuzzer

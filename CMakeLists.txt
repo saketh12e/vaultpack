@@ -40,6 +40,11 @@ install(TARGETS vaultpack
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
     RUNTIME DESTINATION bin)
+install(TARGETS vpack RUNTIME DESTINATION bin)
 
 install(DIRECTORY include/vaultpack
     DESTINATION include)
+
+configure_file(vaultpack.pc.in vaultpack.pc @ONLY)
+install(FILES ${CMAKE_BINARY_DIR}/vaultpack.pc
+    DESTINATION lib/pkgconfig)

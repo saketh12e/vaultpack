@@ -15,6 +15,12 @@ extern "C" {
 #define VP_ARCHIVE_HDR_SIZE     32
 #define VP_ARCHIVE_VERSION      0x0001
 
+/* struct field sizes for binary layout reference:
+ *   vp_dir_entry_t = 32 (name) + 8 (offset) + 4 (size) + 2 (flags)
+ *                  + 1 (type) + 1 (reserved) + 4 (meta_count)
+ *                  + 2 (sub_count) + 4 (sub_stride)
+ *                  = 58 bytes (no padding because u32/u64 are aligned) */
+
 #define VP_SECTION_RAW          0x01
 #define VP_SECTION_COMPRESSED   0x02
 #define VP_SECTION_METADATA     0x03
