@@ -1,0 +1,92 @@
+#include <assert.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "vaultpack/stream.h"
+
+static void test_stream_basic(void)
+{
+    uint8_t buf[16] = {0};
+    for (int i = 0; i < 16; i++) buf[i] = (uint8_t)i;
+
+    vp_stream_t s;
+    vp_stream_init(&s, buf, sizeof(buf));
+
+    assert(vp_stream_remaining(&s) == 16);
+    assert(!vp_stream_at_end(&s));
+
+    assert(vp_stream_read_u8(&s) == 0x00);
+    assert(vp_stream_read_u16(&s) == 0x0201);
+    assert(vp_stream_read_u32(&s) == 0x06050403);
+    uint64_t v = vp_stream_read_u64(&s);
+    assert(v == 0x0e0d0c0b0a090807ULL);
+
+    assert(vp_stream_status(&s) == VP_STREAM_OK);
+    assert(vp_stream_remaining(&s) == 1);
+    vp_stream_read_u8(&s);
+    assert(vp_stream_at_end(&s));
+    printf("test_stream_basic: ok\n");
+}
+
+static void test_stream_truncated(void)
+{
+    uint8_t buf[3] = {1, 2, 3};
+    vp_stream_t s;
+    vp_stream_init(&s, buf, sizeof(buf));
+
+    vp_stream_read_u32(&s); /* not enough bytes */
+    assert(vp_stream_status(&s) == VP_STREAM_ERR_TRUNCATED);
+
+    /* further reads keep returning zero */
+    assert(vp_stream_read_u8(&s) == 0);
+    assert(vp_stream_read_u16(&s) == 0);
+    printf("test_stream_truncated: ok\n");
+}
+
+static void test_stream_bookmark(void)
+{
+    uint8_t buf[8] = {10, 20, 30, 40, 50, 60, 70, 80};
+    vp_stream_t s;
+    vp_stream_init(&s, buf, sizeof(buf));
+
+    vp_stream_read_u8(&s);
+    vp_stream_bookmark_t bm = vp_stream_bookmark(&s);
+    vp_stream_read_u16(&s);
+    assert(vp_stream_read_u8(&s) == 30);
+    vp_stream_restore(&s, bm);
+    assert(vp_stream_read_u8(&s) == 10);
+    printf("test_stream_bookmark: ok\n");
+}
+
+static void test_stream_scratch_window(void)
+{
+    uint8_t buf[64];
+    for (int i = 0; i < 64; i++) buf[i] = (uint8_t)(0x40 + i);
+
+    vp_stream_t s;
+    vp_stream_init(&s, buf, sizeof(buf));
+
+    vp_stream_window_t w = vp_stream_window(&s, 16);
+    assert(w.ptr != NULL);
+    assert(w.len == 16);
+    assert(w.ptr[0] == 0x40);
+    assert(w.ptr[15] == 0x4f);
+
+    /* Trigger a realloc — the window should still be replayable because
+     * the bytes were copied into scratch. */
+    uint8_t big[64];
+    assert(vp_stream_replay_window(&s, &w, big, sizeof(big)));
+    assert(big[0] == 0x40 && big[15] == 0x4f);
+
+    printf("test_stream_scratch_window: ok\n");
+}
+
+int main(void)
+{
+    test_stream_basic();
+    test_stream_truncated();
+    test_stream_bookmark();
+    test_stream_scratch_window();
+    printf("test_stream: all assertions passed\n");
+    return 0;
+}
