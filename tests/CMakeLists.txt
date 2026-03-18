@@ -17,3 +17,15 @@ add_test(NAME test_index COMMAND test_index)
 add_executable(test_extract test_extract.c)
 target_link_libraries(test_extract PRIVATE vaultpack)
 add_test(NAME test_extract COMMAND test_extract)
+
+add_executable(test_stream test_stream.c)
+target_link_libraries(test_stream PRIVATE vaultpack)
+add_test(NAME test_stream COMMAND test_stream)
+
+add_executable(test_buffer test_buffer.c)
+target_link_libraries(test_buffer PRIVATE vaultpack)
+add_test(NAME test_buffer COMMAND test_buffer)
+
+add_executable(test_crc32 test_crc32.c)
+target_link_libraries(test_crc32 PRIVATE vaultpack)
+add_test(NAME test_crc32 COMMAND test_crc32)

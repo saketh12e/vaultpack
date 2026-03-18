@@ -14,6 +14,7 @@ extern "C" {
 #define VP_MAGIC_VPAK_BYTES     "VPAK"
 #define VP_ARCHIVE_HDR_SIZE     32
 #define VP_ARCHIVE_VERSION      0x0001
+#define VP_DIR_ENTRY_NAME_SIZE  32
 
 /* struct field sizes for binary layout reference:
  *   vp_dir_entry_t = 32 (name) + 8 (offset) + 4 (size) + 2 (flags)

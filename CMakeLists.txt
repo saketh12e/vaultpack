@@ -23,7 +23,10 @@ add_library(vaultpack
     src/section.c
     src/metadata.c
     src/index.c
-    src/extract.c)
+    src/extract.c
+    src/stream.c
+    src/buffer.c
+    src/crc32.c)
 
 target_include_directories(vaultpack
     PUBLIC
