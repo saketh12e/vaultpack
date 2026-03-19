@@ -26,17 +26,6 @@ extern "C" {
 #define VP_WRITER_MAX_NAME     32
 #define VP_WRITER_MAX_SECTIONS 1024
 
-typedef struct vp_writer_section {
-    char     name[VP_WRITER_MAX_NAME];
-    uint8_t  type;
-    uint8_t  flags;
-    uint32_t checksum;
-    uint8_t *payload;          /* owned by section if owns=1 */
-    size_t   payload_len;
-    int      owns;
-    uint64_t payload_offset;   /* filled at emit time */
-} vp_writer_section_t;
-
 typedef struct vp_writer_meta_entry {
     char key[24];
     char value[40];
@@ -49,6 +38,19 @@ typedef struct vp_writer_meta_block {
     uint32_t                  entry_cap;
     uint64_t                  block_offset;
 } vp_writer_meta_block_t;
+
+typedef struct vp_writer_section {
+    char     name[VP_WRITER_MAX_NAME];
+    uint8_t  type;
+    uint8_t  flags;
+    uint32_t checksum;
+    uint8_t *payload;          /* owned by section if owns=1 */
+    size_t   payload_len;
+    int      owns;
+    uint64_t payload_offset;   /* filled at emit time */
+    uint32_t meta_count;       /* trailing metadata entry count */
+    struct vp_writer_meta_block *meta_block;  /* points into writer->meta[] */
+} vp_writer_section_t;
 
 typedef struct vp_writer {
     vp_buffer_t           out;

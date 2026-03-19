@@ -84,7 +84,7 @@ int vp_open_archive(const uint8_t *data, size_t size, vp_archive_t **out)
     if (!arc)
         return VP_ERR_NOMEM;
 
-    memcpy(&arc->hdr, data, sizeof(arc->hdr));
+    memcpy(&arc->hdr, data, 32);
 
     rc = vp_read_directory(arc, data, size);
     if (rc != VP_OK) {

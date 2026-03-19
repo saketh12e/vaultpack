@@ -26,7 +26,7 @@ extern "C" {
 #define VP_SECTION_COMPRESSED   0x02
 #define VP_SECTION_METADATA     0x03
 
-typedef struct vp_archive_hdr {
+typedef struct __attribute__((packed)) vp_archive_hdr {
     uint32_t magic;
     uint16_t version;
     uint16_t flags;
@@ -37,7 +37,7 @@ typedef struct vp_archive_hdr {
     uint8_t  reserved[8];
 } vp_archive_hdr_t;
 
-typedef struct vp_dir_entry {
+typedef struct __attribute__((packed)) vp_dir_entry {
     char     name[32];
     uint64_t section_offset;
     uint32_t section_size;

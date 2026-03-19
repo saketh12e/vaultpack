@@ -18,6 +18,7 @@
 #include "vaultpack/archive.h"
 #include "vaultpack/buffer.h"
 #include "vaultpack/crc32.h"
+#include "vaultpack/section.h"
 #include "vaultpack/writer.h"
 
 static int vp_writer_reserve_sections(vp_writer_t *w, uint32_t need)
@@ -183,6 +184,15 @@ int vp_writer_add_metadata(vp_writer_t *w, const uint8_t tag[4],
     memcpy(m->entries, entries, (size_t)count * sizeof(*m->entries));
     m->block_offset = 0;
     w->meta_count++;
+
+    /* Attach this metadata block to the most recently added section by
+     * updating its meta_count and linking the block pointer. The emit
+     * pass will write the block right after the section payload and
+     * patch the section_offset/section_size in the directory entry. */
+    if (w->section_count > 0) {
+        w->sections[w->section_count - 1].meta_count = count;
+        w->sections[w->section_count - 1].meta_block = m;
+    }
     return VP_OK;
 }
 
@@ -201,7 +211,8 @@ void vp_writer_rollback_section(vp_writer_t *w)
 
 static int vp_writer_write_section_headers(vp_writer_t *w)
 {
-    /* For each section: SECT hdr (20 bytes) + payload bytes. */
+    /* For each section: SECT hdr (24 bytes incl. alignment) + payload +
+     * optional trailing metadata block. */
     for (uint32_t i = 0; i < w->section_count; i++) {
         vp_writer_section_t *s = &w->sections[i];
         s->payload_offset = w->out.len;
@@ -218,6 +229,27 @@ static int vp_writer_write_section_headers(vp_writer_t *w)
         if (!vp_buffer_append(&w->out, &hdr, sizeof(hdr))) return 0;
         if (s->payload_len > 0) {
             if (!vp_buffer_append(&w->out, s->payload, s->payload_len)) return 0;
+        }
+
+        /* Trailing metadata block (per-entry) immediately follows the
+         * payload. The aggregate reader treats the trailing region as
+         * `meta_count` records of sizeof(vp_meta_entry_t) bytes each;
+         * but each record also has a tag + key_count prefix that the
+         * block encodes. To stay compatible, we emit the block header
+         * followed by exactly `entry_count` records. */
+        if (s->meta_block && s->meta_count > 0) {
+            vp_writer_meta_block_t *m = s->meta_block;
+            m->block_offset = w->out.len;
+            if (!vp_buffer_append(&w->out, m->tag, 4)) return 0;
+            uint8_t kc[2] = { (uint8_t)(m->entry_count & 0xff),
+                              (uint8_t)((m->entry_count >> 8) & 0xff) };
+            if (!vp_buffer_append(&w->out, kc, 2)) return 0;
+            uint8_t reserved[2] = {0, 0};
+            if (!vp_buffer_append(&w->out, reserved, 2)) return 0;
+            if (!vp_buffer_append(&w->out, m->entries,
+                                  (size_t)m->entry_count *
+                                  sizeof(vp_meta_entry_t)))
+                return 0;
         }
     }
     return 1;
@@ -243,28 +275,33 @@ static int vp_writer_write_metadata_blocks(vp_writer_t *w)
 
 static int vp_writer_write_directory(vp_writer_t *w, uint32_t dir_offset)
 {
+    /* The reader's vp_dir_entry_t is `__attribute__((packed))` (58 bytes).
+     * Write each entry as a 58-byte block so reader and writer agree on
+     * the on-disk stride regardless of host struct padding. */
     for (uint32_t i = 0; i < w->section_count; i++) {
         vp_writer_section_t *s = &w->sections[i];
-        char name[VP_DIR_ENTRY_NAME_SIZE];
-        memset(name, 0, sizeof(name));
-        strncpy(name, s->name, VP_DIR_ENTRY_NAME_SIZE - 1);
-        if (!vp_buffer_append(&w->out, name, VP_DIR_ENTRY_NAME_SIZE)) return 0;
+        uint8_t entry[58];
+        memset(entry, 0, sizeof(entry));
+        memcpy(entry, s->name, VP_DIR_ENTRY_NAME_SIZE < 32 ? VP_DIR_ENTRY_NAME_SIZE : 32);
 
         uint64_t off = s->payload_offset;
         uint32_t so = (uint32_t)s->payload_len;
-        if (!vp_buffer_append_u64_le(&w->out, off)) return 0;
-        if (!vp_buffer_append_u32_le(&w->out, so)) return 0;
+        memcpy(entry + 32, &off, sizeof(off));
+        memcpy(entry + 40, &so, sizeof(so));
         uint16_t flags_le = s->flags;
-        if (!vp_buffer_append_u16_le(&w->out, flags_le)) return 0;
-        uint8_t type_byte = s->type;
-        if (!vp_buffer_append_byte(&w->out, type_byte)) return 0;
-        if (!vp_buffer_append_byte(&w->out, 0)) return 0;       /* reserved */
-        if (!vp_buffer_append_u32_le(&w->out, 0)) return 0;    /* meta_count */
-        if (!vp_buffer_append_u16_le(&w->out, 0)) return 0;    /* sub_count */
-        if (!vp_buffer_append_u32_le(&w->out, 0)) return 0;    /* sub_stride */
+        memcpy(entry + 44, &flags_le, sizeof(flags_le));
+        entry[46] = s->type;
+        /* entry[47] = reserved (0) */
+        /* entry[48..51] = meta_count (per-section trailing metadata) */
+        uint32_t mc = s->meta_count;
+        memcpy(entry + 48, &mc, sizeof(mc));
+        /* entry[52..53] = sub_count = 0 */
+        /* entry[54..57] = sub_stride = 0 */
+
+        if (!vp_buffer_append(&w->out, entry, sizeof(entry))) return 0;
     }
-    /* Patch dir_offset in the archive header. */
-    return vp_buffer_patch_u64_le(&w->out, 12, dir_offset);
+    (void)dir_offset;
+    return 1;
 }
 
 int vp_writer_emit(vp_writer_t *w, uint8_t **out_bytes, size_t *out_len)
@@ -289,8 +326,8 @@ int vp_writer_emit(vp_writer_t *w, uint8_t **out_bytes, size_t *out_len)
 
     if (!vp_writer_write_section_headers(w)) return VP_ERR_NOMEM;
     uint32_t dir_offset = (uint32_t)w->out.len;
-    if (!vp_writer_write_metadata_blocks(w)) return VP_ERR_NOMEM;
     if (!vp_writer_write_directory(w, dir_offset)) return VP_ERR_NOMEM;
+    if (!vp_writer_write_metadata_blocks(w)) return VP_ERR_NOMEM;
 
     /* Now patch the dir_offset placeholder. */
     if (!vp_buffer_patch_u64_le(&w->out, dir_offset_pos, dir_offset))

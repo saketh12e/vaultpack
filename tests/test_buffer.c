@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "vaultpack/buffer.h"
@@ -39,13 +40,18 @@ static void test_buffer_patch(void)
     vp_buffer_t b;
     vp_buffer_init(&b);
     assert(vp_buffer_append_zeros(&b, 16));
+    assert(vp_buffer_patch_u64_le(&b, 0, 0x1122334455667788ULL));
     assert(vp_buffer_patch_u32_le(&b, 4, 0xDEADBEEFu));
     assert(vp_buffer_patch_u16_le(&b, 8, 0xBEEFu));
-    assert(vp_buffer_patch_u64_le(&b, 0, 0x1122334455667788ULL));
 
-    assert(b.data[0] == 0x88 && b.data[7] == 0x11);
+    /* u64 at 0 sets bytes 0..7 = 88 77 66 55 44 33 22 11.
+     * u32 at 4 overrides bytes 4..7 = EF BE AD DE.
+     * u16 at 8 sets bytes 8..9 = EF BE. */
+    assert(b.data[0] == 0x88 && b.data[1] == 0x77 &&
+           b.data[2] == 0x66 && b.data[3] == 0x55);
+    assert(b.data[4] == 0xEF && b.data[5] == 0xBE &&
+           b.data[6] == 0xAD && b.data[7] == 0xDE);
     assert(b.data[8] == 0xEF && b.data[9] == 0xBE);
-    assert(b.data[4] == 0xEF && b.data[5] == 0xBE && b.data[6] == 0xAD && b.data[7] == 0xDE);
     vp_buffer_destroy(&b);
     printf("test_buffer_patch: ok\n");
 }

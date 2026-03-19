@@ -49,12 +49,12 @@ static void test_stream_bookmark(void)
     vp_stream_t s;
     vp_stream_init(&s, buf, sizeof(buf));
 
-    vp_stream_read_u8(&s);
+    vp_stream_read_u8(&s);                          /* reads 10, pos=1 */
     vp_stream_bookmark_t bm = vp_stream_bookmark(&s);
-    vp_stream_read_u16(&s);
-    assert(vp_stream_read_u8(&s) == 30);
-    vp_stream_restore(&s, bm);
-    assert(vp_stream_read_u8(&s) == 10);
+    vp_stream_read_u16(&s);                         /* reads 20,30, pos=3 */
+    assert(vp_stream_read_u8(&s) == 40);            /* reads buf[3] = 40 */
+    vp_stream_restore(&s, bm);                      /* pos back to 1 */
+    assert(vp_stream_read_u8(&s) == 20);            /* reads buf[1] = 20 */
     printf("test_stream_bookmark: ok\n");
 }
 

@@ -29,3 +29,7 @@ add_test(NAME test_buffer COMMAND test_buffer)
 add_executable(test_crc32 test_crc32.c)
 target_link_libraries(test_crc32 PRIVATE vaultpack)
 add_test(NAME test_crc32 COMMAND test_crc32)
+
+add_executable(test_writer test_writer.c)
+target_link_libraries(test_writer PRIVATE vaultpack)
+add_test(NAME test_writer COMMAND test_writer)

@@ -9,7 +9,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
+    set(CMAKE_BUILD_TYPE Debug)
 endif()
 
 add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wstrict-prototypes
@@ -26,7 +26,8 @@ add_library(vaultpack
     src/extract.c
     src/stream.c
     src/buffer.c
-    src/crc32.c)
+    src/crc32.c
+    src/writer.c)
 
 target_include_directories(vaultpack
     PUBLIC
