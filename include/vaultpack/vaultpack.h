@@ -7,6 +7,7 @@
 #include "vaultpack/error.h"
 #include "vaultpack/extract.h"
 #include "vaultpack/index.h"
+#include "vaultpack/manifest.h"
 #include "vaultpack/metadata.h"
 #include "vaultpack/section.h"
 #include "vaultpack/stream.h"

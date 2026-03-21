@@ -24,6 +24,7 @@
 #include <stdint.h>
 
 #include "vaultpack/error.h"
+#include "vaultpack/writer.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -97,6 +98,11 @@ int vp_manifest_add_section(vp_manifest_t *m,
 int vp_manifest_add_default_meta(vp_manifest_t *m,
                                  const char *section,
                                  const char *key, const char *value);
+
+/* Apply the parsed manifest to a writer. Sections are added in source
+ * order; each section's queued metadata defaults are attached in the
+ * order they appeared. Returns VP_OK on success or VP_ERR_* on failure. */
+int vp_manifest_apply(const vp_manifest_t *m, vp_writer_t *w);
 
 #ifdef __cplusplus
 }
