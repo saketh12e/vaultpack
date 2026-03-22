@@ -29,7 +29,8 @@ add_library(vaultpack
     src/crc32.c
     src/writer.c
     src/manifest.c
-    src/manifest_apply.c)
+    src/manifest_apply.c
+    src/codec.c)
 
 target_include_directories(vaultpack
     PUBLIC

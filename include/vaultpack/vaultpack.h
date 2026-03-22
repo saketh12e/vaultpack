@@ -3,6 +3,7 @@
 
 #include "vaultpack/archive.h"
 #include "vaultpack/buffer.h"
+#include "vaultpack/codec.h"
 #include "vaultpack/crc32.h"
 #include "vaultpack/error.h"
 #include "vaultpack/extract.h"
