@@ -33,3 +33,7 @@ add_test(NAME test_crc32 COMMAND test_crc32)
 add_executable(test_writer test_writer.c)
 target_link_libraries(test_writer PRIVATE vaultpack)
 add_test(NAME test_writer COMMAND test_writer)
+
+add_executable(test_codec test_codec.c)
+target_link_libraries(test_codec PRIVATE vaultpack)
+add_test(NAME test_codec COMMAND test_codec)

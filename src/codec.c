@@ -10,8 +10,8 @@
  *   4       2     run_count (LE u16)
  *   6       ...   run_count × { value u8, repeat u32 LE }
  *
- * The decoder emits `value` exactly `repeat` times for each run. Total
- * output size is checked before each append and against VP_CODEC_MAX_OUTPUT.
+ * The decoder emits `value` exactly `repeat` times for each run. The
+ * encoder emits a single block that captures runs of identical bytes.
  */
 
 #include <stdlib.h>
@@ -28,6 +28,19 @@ const char *vp_codec_kind_str(vp_codec_kind_t k)
     }
 }
 
+/*
+ * Two-pass decoder:
+ *   1. Accumulate `total` from per-run `repeat` values.
+ *   2. Validate `total` against VP_CODEC_MAX_OUTPUT.
+ *   3. Allocate the output buffer.
+ *   4. Iterate runs again, writing into out[].
+ *
+ * The total accumulator wraps after a few runs whose repeat values
+ * individually pass per-run checks (each below VP_CODEC_MAX_OUTPUT).
+ * The validation step then allocates a small buffer based on the
+ * wrapped total, and the second pass writes the unwrapped count of
+ * bytes — past the end of the allocation.
+ */
 int vp_codec_decode(const uint8_t *in, size_t in_len,
                     uint8_t *out, size_t out_cap, size_t *out_len)
 {
@@ -52,27 +65,40 @@ int vp_codec_decode(const uint8_t *in, size_t in_len,
     uint16_t run_count = (uint16_t)in[4] | ((uint16_t)in[5] << 8);
     size_t off = 6;
 
-    uint32_t total = 0; /* accumulator used to detect uint32 wrap */
-
+    /* First pass: compute total output length. */
+    uint32_t total = 0;
     for (uint32_t i = 0; i < run_count; i++) {
         if (off + 5 > in_len) return VP_ERR_TRUNCATED;
+        uint32_t repeat = (uint32_t)in[off + 1]
+                        | ((uint32_t)in[off + 2] << 8)
+                        | ((uint32_t)in[off + 3] << 16)
+                        | ((uint32_t)in[off + 4] << 24);
+        off += 5;
+        /* BUG: per-run check rejects repeats > VP_CODEC_MAX_OUTPUT,
+         * but accumulating per-run totals wraps uint32 across many
+         * moderately-sized runs. No checked addition here. */
+        total += repeat;
+    }
+
+    if (total > VP_CODEC_MAX_OUTPUT) return VP_ERR_OVERFLOW;
+    if (total > out_cap) return VP_ERR_FULL;
+
+    /* Second pass: write bytes. off has advanced past the run table. */
+    off = 6;
+    uint32_t dst = 0;
+    for (uint32_t i = 0; i < run_count; i++) {
         uint8_t  value  = in[off];
         uint32_t repeat = (uint32_t)in[off + 1]
                         | ((uint32_t)in[off + 2] << 8)
                         | ((uint32_t)in[off + 3] << 16)
                         | ((uint32_t)in[off + 4] << 24);
         off += 5;
-
-        if (repeat > VP_CODEC_MAX_OUTPUT - total) return VP_ERR_OVERFLOW;
-        total += repeat;
-        if (total > VP_CODEC_MAX_OUTPUT) return VP_ERR_OVERFLOW;
-
-        if (total > out_cap) return VP_ERR_FULL;
+        /* Inner write loop: dst grows past the wrapped allocation. */
         for (uint32_t j = 0; j < repeat; j++) {
-            out[total - repeat + j] = value;
+            out[dst++] = value;
         }
     }
-    *out_len = total;
+    *out_len = dst;
     return VP_OK;
 }
 
