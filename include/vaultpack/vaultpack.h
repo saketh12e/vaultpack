@@ -12,6 +12,7 @@
 #include "vaultpack/metadata.h"
 #include "vaultpack/section.h"
 #include "vaultpack/stream.h"
+#include "vaultpack/validate.h"
 #include "vaultpack/writer.h"
 
 #endif

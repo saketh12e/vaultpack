@@ -30,7 +30,8 @@ add_library(vaultpack
     src/writer.c
     src/manifest.c
     src/manifest_apply.c
-    src/codec.c)
+    src/codec.c
+    src/validate.c)
 
 target_include_directories(vaultpack
     PUBLIC
