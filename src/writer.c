@@ -215,7 +215,6 @@ static int vp_writer_write_section_headers(vp_writer_t *w)
      * optional trailing metadata block. */
     for (uint32_t i = 0; i < w->section_count; i++) {
         vp_writer_section_t *s = &w->sections[i];
-        s->payload_offset = w->out.len;
 
         vp_section_hdr_t hdr;
         memset(&hdr, 0, sizeof(hdr));
@@ -227,6 +226,10 @@ static int vp_writer_write_section_headers(vp_writer_t *w)
         hdr.checksum = s->checksum;
 
         if (!vp_buffer_append(&w->out, &hdr, sizeof(hdr))) return 0;
+
+        /* payload_offset points at the first byte of payload, AFTER the
+         * section header. */
+        s->payload_offset = w->out.len;
         if (s->payload_len > 0) {
             if (!vp_buffer_append(&w->out, s->payload, s->payload_len)) return 0;
         }

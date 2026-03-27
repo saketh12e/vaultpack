@@ -41,3 +41,7 @@ add_test(NAME test_codec COMMAND test_codec)
 add_executable(test_validate test_validate.c)
 target_link_libraries(test_validate PRIVATE vaultpack)
 add_test(NAME test_validate COMMAND test_validate)
+
+add_executable(test_manifest test_manifest.c)
+target_link_libraries(test_manifest PRIVATE vaultpack)
+add_test(NAME test_manifest COMMAND test_manifest)

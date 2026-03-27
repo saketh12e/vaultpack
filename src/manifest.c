@@ -232,17 +232,28 @@ static int vp_parse_section(vp_manifest_t *m, vp_manifest_lex_t *l)
     }
 
     uint16_t fl = 0;
-    while (vp_lex_token(l, flags, sizeof(flags))) {
+    /* Flag tokens are read inline; stop when we cross a newline or
+     * reach end-of-input. We track the column at which we started
+     * and bail if the lexer returned to a smaller column (meaning a
+     * newline was consumed). */
+    uint32_t start_col = l->col;
+    while (!vp_lex_eof(l)) {
+        vp_lex_skip_ws_and_comments(l);
+        if (vp_lex_eof(l)) break;
+        if (l->line != line || l->col < start_col) break;
+        if (!vp_lex_token(l, flags, sizeof(flags))) break;
+        if (flags[0] == '\0') break;
         fl = (uint16_t)((fl << 1) | 1u);
     }
 
     vp_lex_skip_ws_and_comments(l);
-    if (!vp_lex_eof(l) && *l->p != '\n') {
+    if (!vp_lex_eof(l) && l->line == line && *l->p != '\n') {
         vp_manifest_add_diag(m, line, l->col, VP_ERR_INVALID,
                              "section: unexpected trailing tokens");
     }
 
-    return vp_manifest_add_section(m, name, type_id, fl);
+    int r = vp_manifest_add_section(m, name, type_id, fl);
+    return r;
 }
 
 static int vp_parse_meta(vp_manifest_t *m, vp_manifest_lex_t *l)
@@ -276,6 +287,8 @@ int vp_manifest_parse(vp_manifest_t *m, const char *text, size_t len)
     vp_lex_init(&l, text, len);
 
     while (!vp_lex_eof(&l)) {
+        vp_lex_skip_ws_and_comments(&l);
+        if (vp_lex_eof(&l)) break;
         uint32_t line = l.line;
         uint32_t col = l.col;
         if (vp_lex_match_kw(&l, "section")) {
