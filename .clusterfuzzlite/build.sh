@@ -41,6 +41,11 @@ FUZZERS=(
     metadata_fuzzer
     index_fuzzer
     extract_fuzzer
+    stream_fuzzer
+    manifest_fuzzer
+    codec_fuzzer
+    writer_fuzzer
+    validate_fuzzer
 )
 
 for fuzzer in "${FUZZERS[@]}"; do
