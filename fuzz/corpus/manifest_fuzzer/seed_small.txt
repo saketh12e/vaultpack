@@ -1,0 +1,3 @@
+section boot raw
+section cfg metadata
+meta cfg k=v

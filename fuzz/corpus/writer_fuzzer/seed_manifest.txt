@@ -1,0 +1,3 @@
+section a raw
+section b metadata
+meta b x=1
