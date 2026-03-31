@@ -26,6 +26,14 @@ COMMON_SRC=(
     "${SRC}/src/extract.c"
     "${SRC}/src/util.c"
     "${SRC}/src/error.c"
+    "${SRC}/src/stream.c"
+    "${SRC}/src/buffer.c"
+    "${SRC}/src/crc32.c"
+    "${SRC}/src/writer.c"
+    "${SRC}/src/manifest.c"
+    "${SRC}/src/manifest_apply.c"
+    "${SRC}/src/codec.c"
+    "${SRC}/src/validate.c"
 )
 
 OBJECTS=()
