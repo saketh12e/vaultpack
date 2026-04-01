@@ -149,6 +149,24 @@ runtime knob for Clang's address-checking pass: `abort_on_error=1`,
 `detect_leaks=0` (export via the upstream `ASAN_OPTIONS` variable when
 invoking the harness).
 
+## Tooling modules
+
+Beyond the on-disk format reader and writer, VaultPack ships a few
+small production modules:
+
+| Module | Purpose |
+|--------|---------|
+| `stream.h` / `stream.c` | Bounded read cursor with bookmarks, scratch windows, and inline LE decoding. |
+| `buffer.h` / `buffer.c` | Growable output buffer with `reserve` / `append` / `patch` APIs. |
+| `crc32.h` / `crc32.c` | Table-driven CRC32 (IEEE 802.3 polynomial). |
+| `writer.h` / `writer.c` | In-memory archive writer; emits sections, central directory, and metadata blocks. |
+| `manifest.h` / `manifest.c` / `manifest_apply.c` | Tokenizer + parser for a text manifest that drives the writer. |
+| `codec.h` / `codec.c` | Built-in codec: raw passthrough plus an RLE block encoder/decoder. |
+| `validate.h` / `validate.c` | Whole-archive consistency walk with overlap detection and a structured issue report. |
+
+The CLI (`src/vpack_cli.c`) exposes `list`, `info`, `verify`, `pack`, and
+`extract` subcommands on top of these modules.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
