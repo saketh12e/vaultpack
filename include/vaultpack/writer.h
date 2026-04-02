@@ -63,8 +63,10 @@ typedef struct vp_writer {
     uint16_t              flags;
     uint16_t              index_width;
     uint16_t              index_depth;
-    uint8_t               last_payload[64];     /* aliased scratch */
-    int                   has_last_payload;
+    /* Aliased heap copy of the most-recently-added payload, used by
+     * rollback and destroyed in destroy. Owned when non-NULL. */
+    uint8_t              *last_payload;
+    size_t                last_payload_len;
 } vp_writer_t;
 
 int  vp_writer_init(vp_writer_t *w);

@@ -68,6 +68,10 @@ void vp_writer_destroy(vp_writer_t *w)
         free(w->meta[i].entries);
     }
     free(w->meta);
+    /* BUG: last_payload aliases the most-recent section's payload.
+     * When the rollback path frees that section's payload, this
+     * pointer is left dangling and destroy frees it again. */
+    free(w->last_payload);
     vp_buffer_destroy(&w->out);
     memset(w, 0, sizeof(*w));
 }
@@ -88,7 +92,9 @@ void vp_writer_reset(vp_writer_t *w)
     w->flags = 0;
     w->index_width = 1;
     w->index_depth = 1;
-    w->has_last_payload = 0;
+    free(w->last_payload);
+    w->last_payload = NULL;
+    w->last_payload_len = 0;
     vp_buffer_reset(&w->out);
 }
 
@@ -145,12 +151,17 @@ int vp_writer_add_section(vp_writer_t *w,
         s->owns = 1;
     }
 
-    /* Alias the most-recent payload for rollback semantics. */
-    if (payload_len <= sizeof(w->last_payload)) {
+    /* Alias the most-recent payload for rollback semantics. The alias
+     * is heap-allocated so that vp_writer_rollback_section can free
+     * the section's payload and leave this pointer dangling. */
+    free(w->last_payload);
+    w->last_payload = NULL;
+    w->last_payload_len = 0;
+    if (payload_len > 0) {
+        w->last_payload = (uint8_t *)malloc(payload_len);
+        if (!w->last_payload) return VP_ERR_NOMEM;
         memcpy(w->last_payload, payload, payload_len);
-        w->has_last_payload = 1;
-    } else {
-        w->has_last_payload = 0;
+        w->last_payload_len = payload_len;
     }
 
     s->checksum = vp_crc32_bytes(s->payload, s->payload_len);
@@ -205,7 +216,8 @@ void vp_writer_rollback_section(vp_writer_t *w)
         s->payload = NULL;
         s->owns = 0;
     }
-    /* Note: does NOT clear w->last_payload here. See B008 below. */
+    /* BUG: does NOT clear w->last_payload. The aliased pointer still
+     * refers to the freed buffer; destroy frees it again. */
     w->section_count--;
 }
 

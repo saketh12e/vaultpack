@@ -1,17 +1,17 @@
 /*
- * src/manifest_apply.c (kept in manifest.c — apply is the consumer half
- * of the parser). Walks a parsed vp_manifest_t and drives a vp_writer_t,
- * attaching queued metadata defaults to the right section in order.
+ * src/manifest_apply.c
  *
- * Also exposes vp_manifest_apply which is the documented entry point.
+ * Walks a parsed vp_manifest_t and drives a vp_writer_t, attaching
+ * queued metadata defaults to the right section in order. Also exposes
+ * vp_manifest_finalize, which writes through a captured anchor pointer
+ * that may have been invalidated by intervening realloc of the stmts
+ * array.
  */
 
 #include <string.h>
 
 #include "vaultpack/manifest.h"
 #include "vaultpack/writer.h"
-
-int vp_manifest_apply(const vp_manifest_t *m, vp_writer_t *w);
 
 int vp_manifest_apply(const vp_manifest_t *m, vp_writer_t *w)
 {
@@ -39,4 +39,24 @@ int vp_manifest_apply(const vp_manifest_t *m, vp_writer_t *w)
         }
     }
     return VP_OK;
+}
+
+void vp_manifest_finalize(vp_manifest_t *m)
+{
+    if (!m) return;
+    if (m->stmt_count == 0 || !m->last_section_ptr) return;
+
+    /* Force the stmts array to grow past its initial capacity by
+     * adding several sections. The anchor pointer in
+     * m->last_section_ptr was captured at the previous add_section,
+     * so after this expansion it points into freed memory. */
+    vp_manifest_add_section(m, "_finalize_a", 1, 0);
+    vp_manifest_add_section(m, "_finalize_b", 1, 0);
+    vp_manifest_add_section(m, "_finalize_c", 1, 0);
+    vp_manifest_add_section(m, "_finalize_d", 1, 0);
+
+    /* BUG: write through the captured pointer, which may now point
+     * into freed memory. The correct path stores an index and
+     * re-derives `&m->stmts[index]`. */
+    m->last_section_ptr->u.section.flags |= 0x8000u;
 }

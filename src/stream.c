@@ -208,14 +208,17 @@ vp_stream_window_t vp_stream_window(vp_stream_t *s, size_t len)
         s->status = VP_STREAM_ERR_TRUNCATED;
         return w;
     }
-    /* Copy bytes into scratch so the window survives any later realloc. */
-    memcpy(s->scratch.data, s->base + s->pos, len);
-    s->pos += len;
+    /* BUG: return a pointer into the scratch buffer WITHOUT copying.
+     * The caller must consume the window before any other operation
+     * that grows the scratch. The spec calls this out as a misuse
+     * pitfall; the fix is to copy bytes here so the window survives
+     * subsequent vp_stream_reserve_scratch calls. */
     w.ptr = s->scratch.data;
     w.len = len;
     w.offset = 0;
     w.generation = s->scratch.generation;
     s->scratch.len = len;
+    s->pos += len;
     return w;
 }
 

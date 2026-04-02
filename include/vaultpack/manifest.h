@@ -70,6 +70,12 @@ typedef struct vp_manifest {
     uint32_t             stmt_count;
     uint32_t             stmt_cap;
 
+    /* Anchor pointer + index for finalize-time write. The pointer is
+     * captured at add_section time and may dangle after a subsequent
+     * grow. The index is the safe lookup. */
+    uint32_t             last_section_index;
+    vp_manifest_stmt_t  *last_section_ptr;
+
     /* Per-section metadata accumulator. When a meta stmt appears for
      * a section, its key/value are appended here. */
     vp_manifest_meta_t  *defaults;
@@ -103,6 +109,10 @@ int vp_manifest_add_default_meta(vp_manifest_t *m,
  * order; each section's queued metadata defaults are attached in the
  * order they appeared. Returns VP_OK on success or VP_ERR_* on failure. */
 int vp_manifest_apply(const vp_manifest_t *m, vp_writer_t *w);
+
+/* Finalize the parsed manifest. Marks the last section as having
+ * seen metadata. Implemented in manifest_apply.c. */
+void vp_manifest_finalize(vp_manifest_t *m);
 
 #ifdef __cplusplus
 }
