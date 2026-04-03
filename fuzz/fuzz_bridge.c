@@ -11,6 +11,7 @@
 #include <stdlib.h>
 
 #include "vaultpack/vaultpack.h"
+#include "vaultpack/stream.h"
 
 #include "fuzz_bridge.h"
 
@@ -118,4 +119,87 @@ void vp_bridge_extract(const uint8_t *data, size_t size)
     ctx.out_size = 4096;
     vp_extract_section(&ctx, data, size);
     vp_extract_cleanup(&ctx);
+}
+
+void vp_bridge_stream(const uint8_t *data, size_t size)
+{
+    if (!data || size == 0) return;
+    vp_stream_t s;
+    vp_stream_init(&s, data, size);
+
+    (void)vp_stream_read_u8(&s);
+    (void)vp_stream_read_u16(&s);
+    (void)vp_stream_read_u32(&s);
+    (void)vp_stream_read_u64(&s);
+
+    vp_stream_bookmark_t bm = vp_stream_bookmark(&s);
+    (void)vp_stream_read_bytes(&s, NULL, 0);
+    vp_stream_restore(&s, bm);
+
+    vp_stream_window_t w = vp_stream_window(&s, 8);
+    if (w.ptr && vp_stream_remaining(&s) >= 8) {
+        vp_stream_window_t w2 = vp_stream_window(&s, 256);
+        (void)w2;
+        uint8_t buf[8];
+        vp_stream_replay_window(&s, &w, buf, sizeof(buf));
+    } else {
+        uint8_t buf[8];
+        vp_stream_replay_window(&s, &w, buf, sizeof(buf));
+    }
+}
+
+void vp_bridge_manifest(const uint8_t *data, size_t size)
+{
+    vp_manifest_t m;
+    vp_manifest_init(&m);
+    vp_manifest_parse(&m, (const char *)data, size);
+    vp_manifest_finalize(&m);
+    vp_manifest_free(&m);
+}
+
+void vp_bridge_codec(const uint8_t *data, size_t size)
+{
+    if (size == 0) return;
+    uint8_t out[16 * 1024 * 1024];
+    size_t out_len = 0;
+    vp_codec_decode(data, size, out, sizeof(out), &out_len);
+}
+
+void vp_bridge_writer(const uint8_t *data, size_t size)
+{
+    if (size == 0) return;
+    vp_manifest_t m;
+    vp_manifest_init(&m);
+    vp_manifest_parse(&m, (const char *)data, size);
+
+    vp_writer_t w;
+    vp_writer_init(&w);
+    vp_manifest_apply(&m, &w);
+
+    uint8_t *out = NULL;
+    size_t out_len = 0;
+    vp_writer_emit(&w, &out, &out_len);
+    free(out);
+
+    vp_writer_destroy(&w);
+    vp_manifest_free(&m);
+}
+
+void vp_bridge_validate(const uint8_t *data, size_t size)
+{
+    if (size < 32) return;
+    vp_archive_t *arc = NULL;
+    if (vp_open_archive(data, size, &arc) != VP_OK) return;
+
+    vp_validate_report_t r;
+    vp_validate_report_init(&r);
+    vp_validate_archive(arc, &r);
+    vp_validate_report_free(&r);
+
+    uint64_t *iv = NULL;
+    uint32_t n = 0;
+    vp_validate_collect_intervals(arc, &iv, &n);
+    free(iv);
+
+    vp_close_archive(arc);
 }

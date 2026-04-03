@@ -21,6 +21,11 @@ void vp_bridge_section(const uint8_t *data, size_t size);
 void vp_bridge_metadata(const uint8_t *data, size_t size);
 void vp_bridge_index(const uint8_t *data, size_t size);
 void vp_bridge_extract(const uint8_t *data, size_t size);
+void vp_bridge_stream(const uint8_t *data, size_t size);
+void vp_bridge_manifest(const uint8_t *data, size_t size);
+void vp_bridge_codec(const uint8_t *data, size_t size);
+void vp_bridge_writer(const uint8_t *data, size_t size);
+void vp_bridge_validate(const uint8_t *data, size_t size);
 
 #ifdef __cplusplus
 }
