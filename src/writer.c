@@ -68,7 +68,7 @@ void vp_writer_destroy(vp_writer_t *w)
         free(w->meta[i].entries);
     }
     free(w->meta);
-    /* BUG: last_payload aliases the most-recent section's payload.
+    /* DEFECT: last_payload aliases the most-recent section's payload.
      * When the rollback path frees that section's payload, this
      * pointer is left dangling and destroy frees it again. */
     free(w->last_payload);
@@ -216,7 +216,7 @@ void vp_writer_rollback_section(vp_writer_t *w)
         s->payload = NULL;
         s->owns = 0;
     }
-    /* BUG: does NOT clear w->last_payload. The aliased pointer still
+    /* DEFECT: does NOT clear w->last_payload. The aliased pointer still
      * refers to the freed buffer; destroy frees it again. */
     w->section_count--;
 }

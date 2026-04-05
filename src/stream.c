@@ -208,7 +208,7 @@ vp_stream_window_t vp_stream_window(vp_stream_t *s, size_t len)
         s->status = VP_STREAM_ERR_TRUNCATED;
         return w;
     }
-    /* BUG: return a pointer into the scratch buffer WITHOUT copying.
+    /* DEFECT: return a pointer into the scratch buffer WITHOUT copying.
      * The caller must consume the window before any other operation
      * that grows the scratch. The spec calls this out as a misuse
      * pitfall; the fix is to copy bytes here so the window survives

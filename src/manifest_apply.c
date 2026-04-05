@@ -55,7 +55,7 @@ void vp_manifest_finalize(vp_manifest_t *m)
     vp_manifest_add_section(m, "_finalize_c", 1, 0);
     vp_manifest_add_section(m, "_finalize_d", 1, 0);
 
-    /* BUG: write through the captured pointer, which may now point
+    /* DEFECT: write through the captured pointer, which may now point
      * into freed memory. The correct path stores an index and
      * re-derives `&m->stmts[index]`. */
     m->last_section_ptr->u.section.flags |= 0x8000u;

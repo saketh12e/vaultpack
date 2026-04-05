@@ -74,7 +74,7 @@ int vp_codec_decode(const uint8_t *in, size_t in_len,
                         | ((uint32_t)in[off + 3] << 16)
                         | ((uint32_t)in[off + 4] << 24);
         off += 5;
-        /* BUG: per-run check rejects repeats > VP_CODEC_MAX_OUTPUT,
+        /* DEFECT: per-run check rejects repeats > VP_CODEC_MAX_OUTPUT,
          * but accumulating per-run totals wraps uint32 across many
          * moderately-sized runs. No checked addition here. */
         total += repeat;

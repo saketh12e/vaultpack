@@ -105,7 +105,7 @@ int vp_manifest_add_section(vp_manifest_t *m, const char *name,
     strncpy(s->u.section.name, name, sizeof(s->u.section.name) - 1);
     s->line = 0;
     s->col = 0;
-    /* BUG: capture pointer to the just-added section so a later helper
+    /* DEFECT: capture pointer to the just-added section so a later helper
      * that grows the stmts array can write through a stale pointer. */
     m->last_section_index = m->stmt_count - 1;
     m->last_section_ptr   = s;

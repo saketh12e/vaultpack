@@ -75,7 +75,7 @@ int vp_validate_collect_intervals(const vp_archive_t *arc,
 
         for (uint32_t m = 0; m < e->meta_count; m++) {
             uint64_t meta_off = payload_hi + (uint64_t)m * sizeof(vp_meta_entry_t);
-            /* BUG: n++ advances past the allocation when meta_count > 0. */
+            /* DEFECT: n++ advances past the allocation when meta_count > 0. */
             iv[n++] = meta_off;
             iv[n++] = meta_off + sizeof(vp_meta_entry_t);
         }
