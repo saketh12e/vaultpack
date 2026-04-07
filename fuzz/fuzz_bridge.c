@@ -176,6 +176,8 @@ void vp_bridge_writer(const uint8_t *data, size_t size)
     vp_writer_init(&w);
     vp_manifest_apply(&m, &w);
 
+    vp_writer_rollback_section(&w);
+
     uint8_t *out = NULL;
     size_t out_len = 0;
     vp_writer_emit(&w, &out, &out_len);
