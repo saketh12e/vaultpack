@@ -14,6 +14,8 @@ extern "C" {
 #define VP_ERR_INVALID_COMP -4
 #define VP_ERR_FULL         -5
 #define VP_ERR_OVERFLOW     -6
+#define VP_ERR_LENGTH       -7
+#define VP_ERR_CHECKSUM     -8
 
 const char *vp_strerror(int code);
 
