@@ -45,3 +45,11 @@ add_test(NAME test_validate COMMAND test_validate)
 add_executable(test_manifest test_manifest.c)
 target_link_libraries(test_manifest PRIVATE vaultpack)
 add_test(NAME test_manifest COMMAND test_manifest)
+
+add_executable(test_decompress test_decompress.c)
+target_link_libraries(test_decompress PRIVATE vaultpack)
+add_test(NAME test_decompress COMMAND test_decompress)
+
+add_executable(test_section_pipeline test_section_pipeline.c)
+target_link_libraries(test_section_pipeline PRIVATE vaultpack)
+add_test(NAME test_section_pipeline COMMAND test_section_pipeline)

@@ -31,7 +31,11 @@ add_library(vaultpack
     src/manifest.c
     src/manifest_apply.c
     src/codec.c
-    src/validate.c)
+    src/validate.c
+    src/decompress_lz4.c
+    src/decompress_hc.c
+    src/section_pipeline.c
+    src/checksum_stream.c)
 
 target_include_directories(vaultpack
     PUBLIC
