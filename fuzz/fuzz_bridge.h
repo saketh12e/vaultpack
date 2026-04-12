@@ -26,6 +26,16 @@ void vp_bridge_manifest(const uint8_t *data, size_t size);
 void vp_bridge_codec(const uint8_t *data, size_t size);
 void vp_bridge_writer(const uint8_t *data, size_t size);
 void vp_bridge_validate(const uint8_t *data, size_t size);
+void vp_bridge_pipeline(const uint8_t *data, size_t size);
+void vp_bridge_pack(const uint8_t *data, size_t size);
+void vp_bridge_cache(const uint8_t *data, size_t size);
+void vp_bridge_merge(const uint8_t *data, size_t size);
+void vp_bridge_repair(const uint8_t *data, size_t size);
+void vp_bridge_schema(const uint8_t *data, size_t size);
+void vp_bridge_index2(const uint8_t *data, size_t size);
+void vp_bridge_range(const uint8_t *data, size_t size);
+void vp_bridge_diff(const uint8_t *data, size_t size);
+void vp_bridge_compose(const uint8_t *data, size_t size);
 
 #ifdef __cplusplus
 }

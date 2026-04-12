@@ -12,6 +12,8 @@
 
 #include "vaultpack/vaultpack.h"
 #include "vaultpack/stream.h"
+#include "vaultpack/decompress.h"
+#include "vaultpack/section_pipeline.h"
 
 #include "fuzz_bridge.h"
 
@@ -204,4 +206,99 @@ void vp_bridge_validate(const uint8_t *data, size_t size)
     free(iv);
 
     vp_close_archive(arc);
+}
+
+/* === Subsystem bridges (stubs that satisfy the HARNESS_CALLS table) ===
+ *
+ * Each new subsystem exports a thin bridge that exercises the public
+ * APIs. The detailed bug-planting surfaces in src/<subsystem>.c; the
+ * bridges simply drive enough of the API to expose lifecycle and
+ * ownership bugs.
+ */
+
+void vp_bridge_pipeline(const uint8_t *data, size_t size)
+{
+    if (!data || size < 8) return;
+    uint32_t codec = (uint32_t)data[0]
+                   | ((uint32_t)data[1] << 8)
+                   | ((uint32_t)data[2] << 16)
+                   | ((uint32_t)data[3] << 24);
+    uint32_t raw_size = (uint32_t)data[4]
+                      | ((uint32_t)data[5] << 8)
+                      | ((uint32_t)data[6] << 16)
+                      | ((uint32_t)data[7] << 24);
+    if (raw_size == 0 || raw_size > (1u << 20)) return;
+
+    uint8_t *out = (uint8_t *)malloc(raw_size);
+    if (!out) return;
+    size_t produced = 0;
+    if (codec == VP_CODEC_TAG_LZ4X) {
+        vp_decompress_lz4x(data, size, out, raw_size, &produced);
+    } else if (codec == VP_CODEC_TAG_HC01) {
+        vp_decompress_hc01(data, size, out, raw_size, &produced);
+    }
+    free(out);
+
+    vp_section_pipeline_t p;
+    vp_section_pipeline_init(&p, codec, raw_size, size - 8, 0);
+    uint8_t *pout = NULL;
+    size_t   plen = 0;
+    vp_section_pipeline_run(&p, data + 8, size - 8, &pout, &plen);
+    free(pout);
+    vp_section_pipeline_destroy(&p);
+}
+
+void vp_bridge_pack(const uint8_t *data, size_t size)
+{
+    /* Drive the streaming pack context: init, append chunks, emit. */
+    extern int vp_pack_ctx_run(const uint8_t *data, size_t size);
+    vp_pack_ctx_run(data, size);
+}
+
+void vp_bridge_cache(const uint8_t *data, size_t size)
+{
+    extern int vp_section_cache_run(const uint8_t *data, size_t size);
+    vp_section_cache_run(data, size);
+}
+
+void vp_bridge_merge(const uint8_t *data, size_t size)
+{
+    extern int vp_archive_merge_run(const uint8_t *data, size_t size);
+    vp_archive_merge_run(data, size);
+}
+
+void vp_bridge_repair(const uint8_t *data, size_t size)
+{
+    extern int vp_archive_repair_run(const uint8_t *data, size_t size);
+    vp_archive_repair_run(data, size);
+}
+
+void vp_bridge_schema(const uint8_t *data, size_t size)
+{
+    extern int vp_meta_schema_run(const uint8_t *data, size_t size);
+    vp_meta_schema_run(data, size);
+}
+
+void vp_bridge_index2(const uint8_t *data, size_t size)
+{
+    extern int vp_index2_run(const uint8_t *data, size_t size);
+    vp_index2_run(data, size);
+}
+
+void vp_bridge_range(const uint8_t *data, size_t size)
+{
+    extern int vp_range_io_run(const uint8_t *data, size_t size);
+    vp_range_io_run(data, size);
+}
+
+void vp_bridge_diff(const uint8_t *data, size_t size)
+{
+    extern int vp_archive_diff_run(const uint8_t *data, size_t size);
+    vp_archive_diff_run(data, size);
+}
+
+void vp_bridge_compose(const uint8_t *data, size_t size)
+{
+    extern int vp_meta_compose_run(const uint8_t *data, size_t size);
+    vp_meta_compose_run(data, size);
 }
