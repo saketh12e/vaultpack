@@ -16,6 +16,10 @@ extern "C" {
 #define VP_ERR_OVERFLOW     -6
 #define VP_ERR_LENGTH       -7
 #define VP_ERR_CHECKSUM     -8
+#define VP_ERR_DUPLICATE    -9
+#define VP_ERR_RANGE       -10
+#define VP_ERR_NOTFOUND    -11
+#define VP_ERR_IO          -12
 
 const char *vp_strerror(int code);
 
