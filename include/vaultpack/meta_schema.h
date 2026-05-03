@@ -1,0 +1,56 @@
+/*
+ * include/vaultpack/meta_schema.h
+ *
+ * Typed metadata schema. A schema describes the typed layout of
+ * metadata entries for a section: each entry has a 4-byte tag and
+ * a value with a declared type. The validator dispatches on the
+ * tag and checks the value against the type before exposing the
+ * metadata to callers.
+ */
+#ifndef VAULTPACK_META_SCHEMA_H
+#define VAULTPACK_META_SCHEMA_H
+
+#include <stddef.h>
+#include <stdint.h>
+
+#include "vaultpack/error.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define VP_META_DISPATCH_SIZE 64
+
+typedef enum vp_meta_type {
+    VP_META_INT32  = 1,
+    VP_META_STRING = 2,
+    VP_META_BYTES  = 3,
+    VP_META_BOOL   = 4
+} vp_meta_type_t;
+
+typedef struct vp_meta_dispatch_entry {
+    uint32_t      tag;
+    vp_meta_type_t type;
+} vp_meta_dispatch_entry_t;
+
+typedef struct vp_meta_schema {
+    vp_meta_dispatch_entry_t table[VP_META_DISPATCH_SIZE];
+    uint32_t                 count;
+} vp_meta_schema_t;
+
+void vp_meta_schema_init(vp_meta_schema_t *s);
+int  vp_meta_schema_register(vp_meta_schema_t *s, uint32_t tag,
+                             vp_meta_type_t type);
+
+int  vp_meta_schema_validate(const vp_meta_schema_t *s,
+                            uint32_t tag, const uint8_t *value, size_t len);
+
+/* Test entry point used by the bridge. */
+int vp_meta_schema_run(const uint8_t *data, size_t size);
+int vp_meta_compose_run(const uint8_t *data, size_t size);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* VAULTPACK_META_SCHEMA_H */
