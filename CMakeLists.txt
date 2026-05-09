@@ -35,7 +35,26 @@ add_library(vaultpack
     src/decompress_lz4.c
     src/decompress_hc.c
     src/section_pipeline.c
-    src/checksum_stream.c)
+    src/checksum_stream.c
+    src/pack_ctx.c
+    src/chunk_assembler.c
+    src/dir_emit.c
+    src/pack_abort.c
+    src/range_io.c
+    src/section_cache.c
+    src/archive_view.c
+    src/prefetch.c
+    src/cache_pin.c
+    src/interval_engine.c
+    src/archive_merge.c
+    src/archive_repair.c
+    src/archive_diff.c
+    src/offset_remap.c
+    src/meta_schema.c
+    src/meta_compose.c
+    src/index_sort.c
+    src/index_lookup.c
+    src/index_compact.c)
 
 target_include_directories(vaultpack
     PUBLIC

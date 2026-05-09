@@ -34,6 +34,29 @@ COMMON_SRC=(
     "${SRC}/src/manifest_apply.c"
     "${SRC}/src/codec.c"
     "${SRC}/src/validate.c"
+    "${SRC}/src/decompress_lz4.c"
+    "${SRC}/src/decompress_hc.c"
+    "${SRC}/src/section_pipeline.c"
+    "${SRC}/src/checksum_stream.c"
+    "${SRC}/src/pack_ctx.c"
+    "${SRC}/src/chunk_assembler.c"
+    "${SRC}/src/dir_emit.c"
+    "${SRC}/src/pack_abort.c"
+    "${SRC}/src/range_io.c"
+    "${SRC}/src/section_cache.c"
+    "${SRC}/src/archive_view.c"
+    "${SRC}/src/prefetch.c"
+    "${SRC}/src/cache_pin.c"
+    "${SRC}/src/interval_engine.c"
+    "${SRC}/src/archive_merge.c"
+    "${SRC}/src/archive_repair.c"
+    "${SRC}/src/archive_diff.c"
+    "${SRC}/src/offset_remap.c"
+    "${SRC}/src/meta_schema.c"
+    "${SRC}/src/meta_compose.c"
+    "${SRC}/src/index_sort.c"
+    "${SRC}/src/index_lookup.c"
+    "${SRC}/src/index_compact.c"
 )
 
 OBJECTS=()
@@ -54,6 +77,16 @@ FUZZERS=(
     codec_fuzzer
     writer_fuzzer
     validate_fuzzer
+    pipeline_fuzzer
+    pack_fuzzer
+    cache_fuzzer
+    merge_fuzzer
+    repair_fuzzer
+    schema_fuzzer
+    index2_fuzzer
+    range_fuzzer
+    diff_fuzzer
+    compose_fuzzer
 )
 
 for fuzzer in "${FUZZERS[@]}"; do

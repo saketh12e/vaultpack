@@ -18,3 +18,13 @@ fuzz_targets:
   - codec_fuzzer
   - writer_fuzzer
   - validate_fuzzer
+  - pipeline_fuzzer
+  - pack_fuzzer
+  - cache_fuzzer
+  - merge_fuzzer
+  - repair_fuzzer
+  - schema_fuzzer
+  - index2_fuzzer
+  - range_fuzzer
+  - diff_fuzzer
+  - compose_fuzzer
