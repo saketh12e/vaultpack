@@ -1,0 +1,1 @@
+A heap-use-after-free read occurs in `vp_section_cache_put()` in `src/section_cache.c` when the LRU pool evicts a slot to make room for a new entry. An iterator that captured the slot's `payload` pointer before the put continues reading through that pointer after the eviction frees the backing buffer. The pin counter on the slot is not consulted before the eviction.
