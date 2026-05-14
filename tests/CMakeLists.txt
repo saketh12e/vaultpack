@@ -53,3 +53,39 @@ add_test(NAME test_decompress COMMAND test_decompress)
 add_executable(test_section_pipeline test_section_pipeline.c)
 target_link_libraries(test_section_pipeline PRIVATE vaultpack)
 add_test(NAME test_section_pipeline COMMAND test_section_pipeline)
+
+add_executable(test_pack_ctx test_pack_ctx.c)
+target_link_libraries(test_pack_ctx PRIVATE vaultpack)
+add_test(NAME test_pack_ctx COMMAND test_pack_ctx)
+
+add_executable(test_chunk_assembler test_chunk_assembler.c)
+target_link_libraries(test_chunk_assembler PRIVATE vaultpack)
+add_test(NAME test_chunk_assembler COMMAND test_chunk_assembler)
+
+add_executable(test_range_io test_range_io.c)
+target_link_libraries(test_range_io PRIVATE vaultpack)
+add_test(NAME test_range_io COMMAND test_range_io)
+
+add_executable(test_section_cache test_section_cache.c)
+target_link_libraries(test_section_cache PRIVATE vaultpack)
+add_test(NAME test_section_cache COMMAND test_section_cache)
+
+add_executable(test_interval_engine test_interval_engine.c)
+target_link_libraries(test_interval_engine PRIVATE vaultpack)
+add_test(NAME test_interval_engine COMMAND test_interval_engine)
+
+add_executable(test_archive_merge test_archive_merge.c)
+target_link_libraries(test_archive_merge PRIVATE vaultpack)
+add_test(NAME test_archive_merge COMMAND test_archive_merge)
+
+add_executable(test_archive_repair test_archive_repair.c)
+target_link_libraries(test_archive_repair PRIVATE vaultpack)
+add_test(NAME test_archive_repair COMMAND test_archive_repair)
+
+add_executable(test_meta_schema test_meta_schema.c)
+target_link_libraries(test_meta_schema PRIVATE vaultpack)
+add_test(NAME test_meta_schema COMMAND test_meta_schema)
+
+add_executable(test_index2 test_index2.c)
+target_link_libraries(test_index2 PRIVATE vaultpack)
+add_test(NAME test_index2 COMMAND test_index2)
