@@ -40,6 +40,15 @@ int  vp_interval_engine_overlaps(const vp_interval_engine_t *e,
                                 uint64_t start, uint64_t end);
 int  vp_interval_engine_count(const vp_interval_engine_t *e);
 
+/* Derived operations. */
+uint64_t vp_interval_engine_total_coverage(const vp_interval_engine_t *e);
+uint32_t vp_interval_engine_gaps(const vp_interval_engine_t *e,
+                                 vp_interval_t *out, uint32_t out_cap);
+int  vp_interval_engine_within(const vp_interval_engine_t *e,
+                              uint64_t start, uint64_t end);
+int  vp_interval_engine_subtract(vp_interval_engine_t *e,
+                                uint64_t start, uint64_t end);
+
 /* Test entry point used by the bridge. */
 int vp_interval_engine_run(const uint8_t *data, size_t size);
 
