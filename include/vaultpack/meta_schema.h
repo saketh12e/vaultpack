@@ -45,6 +45,19 @@ int  vp_meta_schema_register(vp_meta_schema_t *s, uint32_t tag,
 int  vp_meta_schema_validate(const vp_meta_schema_t *s,
                             uint32_t tag, const uint8_t *value, size_t len);
 
+/* Schema introspection. */
+vp_meta_type_t vp_meta_schema_lookup(const vp_meta_schema_t *s, uint32_t tag);
+int      vp_meta_schema_known(const vp_meta_schema_t *s, uint32_t tag);
+uint32_t vp_meta_schema_count(const vp_meta_schema_t *s);
+uint32_t vp_meta_schema_tag_at(const vp_meta_schema_t *s, uint32_t idx);
+vp_meta_type_t vp_meta_schema_type_at(const vp_meta_schema_t *s, uint32_t idx);
+int      vp_meta_schema_unregister(vp_meta_schema_t *s, uint32_t tag);
+
+/* Typed convenience validators. */
+int vp_meta_schema_validate_int(const vp_meta_schema_t *s, uint32_t tag, int32_t value);
+int vp_meta_schema_validate_string(const vp_meta_schema_t *s, uint32_t tag, const char *value);
+int vp_meta_schema_validate_bool(const vp_meta_schema_t *s, uint32_t tag, int value);
+
 /* Test entry point used by the bridge. */
 int vp_meta_schema_run(const uint8_t *data, size_t size);
 int vp_meta_compose_run(const uint8_t *data, size_t size);

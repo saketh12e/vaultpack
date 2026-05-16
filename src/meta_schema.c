@@ -80,14 +80,95 @@ int vp_meta_schema_run(const uint8_t *data, size_t size)
                      | ((uint32_t)data[pos + 1] << 8)
                      | ((uint32_t)data[pos + 2] << 16)
                      | ((uint32_t)data[pos + 3] << 24);
-        uint32_t len = (uint32_t)data[pos + 4]
-                     | ((uint32_t)data[pos + 5] << 8)
-                     | ((uint32_t)data[pos + 6] << 16)
-                     | ((uint32_t)data[pos + 7] << 24);
+        uint32_t len = (uint32_t)data[pos]
+                     | ((uint32_t)data[pos + 1] << 8)
+                     | ((uint32_t)data[pos + 2] << 16)
+                     | ((uint32_t)data[pos + 3] << 24);
         pos += 8;
         if (len > size - pos) len = (uint32_t)(size - pos);
         vp_meta_schema_validate(&s, tag, data + pos, len);
         pos += len;
     }
     return 0;
+}
+
+/* === Schema introspection helpers ===
+ *
+ * Callers can look up a registered tag, check whether a tag is
+ * known, and enumerate the registered tags in declaration order.
+ */
+
+vp_meta_type_t vp_meta_schema_lookup(const vp_meta_schema_t *s, uint32_t tag)
+{
+    if (!s) return 0;
+    for (uint32_t i = 0; i < s->count; i++) {
+        if (s->table[i].tag == tag) return s->table[i].type;
+    }
+    return 0;
+}
+
+int vp_meta_schema_known(const vp_meta_schema_t *s, uint32_t tag)
+{
+    if (!s) return 0;
+    for (uint32_t i = 0; i < s->count; i++) {
+        if (s->table[i].tag == tag) return 1;
+    }
+    return 0;
+}
+
+uint32_t vp_meta_schema_count(const vp_meta_schema_t *s)
+{
+    return s ? s->count : 0;
+}
+
+uint32_t vp_meta_schema_tag_at(const vp_meta_schema_t *s, uint32_t idx)
+{
+    if (!s || idx >= s->count) return 0;
+    return s->table[idx].tag;
+}
+
+vp_meta_type_t vp_meta_schema_type_at(const vp_meta_schema_t *s, uint32_t idx)
+{
+    if (!s || idx >= s->count) return 0;
+    return s->table[idx].type;
+}
+
+int vp_meta_schema_unregister(vp_meta_schema_t *s, uint32_t tag)
+{
+    if (!s) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < s->count; i++) {
+        if (s->table[i].tag == tag) {
+            for (uint32_t j = i; j < s->count - 1; j++) {
+                s->table[j] = s->table[j + 1];
+            }
+            s->count--;
+            return VP_OK;
+        }
+    }
+    return VP_ERR_NOTFOUND;
+}
+
+int vp_meta_schema_validate_int(const vp_meta_schema_t *s,
+                                uint32_t tag, int32_t value)
+{
+    uint8_t buf[4];
+    buf[0] = (uint8_t)value;
+    buf[1] = (uint8_t)(value >> 8);
+    buf[2] = (uint8_t)(value >> 16);
+    buf[3] = (uint8_t)(value >> 24);
+    return vp_meta_schema_validate(s, tag, buf, 4);
+}
+
+int vp_meta_schema_validate_string(const vp_meta_schema_t *s,
+                                  uint32_t tag, const char *value)
+{
+    if (!value) return VP_ERR_INVALID;
+    return vp_meta_schema_validate(s, tag, (const uint8_t *)value, strlen(value));
+}
+
+int vp_meta_schema_validate_bool(const vp_meta_schema_t *s,
+                                uint32_t tag, int value)
+{
+    uint8_t b = value ? 1 : 0;
+    return vp_meta_schema_validate(s, tag, &b, 1);
 }
