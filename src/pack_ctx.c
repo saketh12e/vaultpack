@@ -295,3 +295,67 @@ int vp_pack_ctx_run(const uint8_t *data, size_t size)
     vp_pack_ctx_destroy(&ctx);
     return 0;
 }
+
+/* === Pack context introspection ===
+ *
+ * Callers can inspect the in-flight section list for diagnostics,
+ * progress reporting, and merge pre-checks.
+ */
+
+uint32_t vp_pack_ctx_section_count(const vp_pack_ctx_t *ctx)
+{
+    return ctx ? ctx->section_count : 0;
+}
+
+int vp_pack_ctx_in_flight(const vp_pack_ctx_t *ctx)
+{
+    return ctx && ctx->current >= 0;
+}
+
+const char *vp_pack_ctx_current_name(const vp_pack_ctx_t *ctx)
+{
+    if (!ctx || ctx->current < 0) return NULL;
+    return ctx->sections[ctx->current].name;
+}
+
+uint32_t vp_pack_ctx_current_size(const vp_pack_ctx_t *ctx)
+{
+    if (!ctx || ctx->current < 0) return 0;
+    return ctx->sections[ctx->current].raw_size;
+}
+
+int vp_pack_ctx_section_at(const vp_pack_ctx_t *ctx, uint32_t idx,
+                           vp_pack_section_t *out)
+{
+    if (!ctx || !out || idx >= ctx->section_count) return VP_ERR_RANGE;
+    *out = ctx->sections[idx];
+    return VP_OK;
+}
+
+int vp_pack_ctx_abort_current(vp_pack_ctx_t *ctx)
+{
+    if (!ctx) return VP_ERR_INVALID;
+    if (ctx->current < 0) return VP_ERR_INVALID;
+    int rc = vp_pack_abort_section(&ctx->sections[ctx->current]);
+    ctx->current = -1;
+    return rc;
+}
+
+int vp_pack_ctx_find(const vp_pack_ctx_t *ctx, const char *name)
+{
+    if (!ctx || !name) return -1;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        if (strcmp(ctx->sections[i].name, name) == 0) return (int)i;
+    }
+    return -1;
+}
+
+uint64_t vp_pack_ctx_total_size(const vp_pack_ctx_t *ctx)
+{
+    if (!ctx) return 0;
+    uint64_t total = 0;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        total += ctx->sections[i].raw_size;
+    }
+    return total;
+}

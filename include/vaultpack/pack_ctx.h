@@ -81,6 +81,17 @@ int  vp_pack_ctx_finish(vp_pack_ctx_t *ctx);
 
 int  vp_pack_ctx_emit(vp_pack_ctx_t *ctx, uint8_t **out, size_t *out_len);
 
+/* Introspection helpers. */
+uint32_t vp_pack_ctx_section_count(const vp_pack_ctx_t *ctx);
+int      vp_pack_ctx_in_flight(const vp_pack_ctx_t *ctx);
+const char *vp_pack_ctx_current_name(const vp_pack_ctx_t *ctx);
+uint32_t vp_pack_ctx_current_size(const vp_pack_ctx_t *ctx);
+int      vp_pack_ctx_section_at(const vp_pack_ctx_t *ctx, uint32_t idx,
+                                vp_pack_section_t *out);
+int      vp_pack_ctx_abort_current(vp_pack_ctx_t *ctx);
+int      vp_pack_ctx_find(const vp_pack_ctx_t *ctx, const char *name);
+uint64_t vp_pack_ctx_total_size(const vp_pack_ctx_t *ctx);
+
 /* Test entry point used by the bridge. */
 int vp_pack_ctx_run(const uint8_t *data, size_t size);
 
