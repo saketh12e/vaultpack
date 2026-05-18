@@ -41,6 +41,19 @@ int  vp_range_io_peek(const vp_range_io_t *r,
 /* Test entry point used by the bridge. */
 int vp_range_io_run(const uint8_t *data, size_t size);
 
+/* Additional operations. */
+uint32_t vp_range_io_crc32(const vp_range_io_t *r, size_t offset, size_t len);
+int vp_range_io_find(const vp_range_io_t *r,
+                     size_t offset, const uint8_t *needle, size_t nlen,
+                     size_t *found);
+
+typedef int (*vp_range_record_cb)(const uint8_t *rec, size_t size, void *user);
+
+int vp_range_io_iter_records(const vp_range_io_t *r,
+                             size_t offset, size_t rec_size,
+                             size_t count, vp_range_record_cb cb,
+                             void *user);
+
 /* Archive view: open an archive via the range reader and read out
  * its directory. The view borrows the section payloads from the
  * range reader. */
