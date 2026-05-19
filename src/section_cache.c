@@ -174,3 +174,68 @@ int vp_section_cache_run(const uint8_t *data, size_t size)
     vp_section_cache_destroy(&c);
     return 0;
 }
+
+/* === Cache statistics ===
+ *
+ * The cache maintains a few derived counters that callers (and the
+ * harness) can read for instrumentation. Statistics are computed
+ * lazily from the underlying slots; they are not maintained
+ * incrementally.
+ */
+
+uint32_t vp_section_cache_slot_count(const vp_section_cache_t *c)
+{
+    if (!c) return 0;
+    uint32_t n = 0;
+    for (uint32_t i = 0; i < VP_SECTION_CACHE_SLOTS; i++) {
+        if (c->slots[i].payload) n++;
+    }
+    return n;
+}
+
+uint64_t vp_section_cache_total_bytes(const vp_section_cache_t *c)
+{
+    if (!c) return 0;
+    uint64_t total = 0;
+    for (uint32_t i = 0; i < VP_SECTION_CACHE_SLOTS; i++) {
+        total += c->slots[i].len;
+    }
+    return total;
+}
+
+uint32_t vp_section_cache_pinned_count(const vp_section_cache_t *c)
+{
+    if (!c) return 0;
+    uint32_t n = 0;
+    for (uint32_t i = 0; i < VP_SECTION_CACHE_SLOTS; i++) {
+        if (c->slots[i].payload && c->slots[i].pin_count > 0) n++;
+    }
+    return n;
+}
+
+int vp_section_cache_remove(vp_section_cache_t *c, const char *name)
+{
+    if (!c || !name) return VP_ERR_INVALID;
+    int idx = vp_section_cache_slot_find(c, name);
+    if (idx < 0) return VP_ERR_NOTFOUND;
+    if (c->slots[idx].pin_count > 0) return VP_ERR_FULL;
+    free(c->slots[idx].payload);
+    c->slots[idx].payload = NULL;
+    c->slots[idx].len = 0;
+    c->slots[idx].name[0] = '\0';
+    c->slots[idx].last_used = 0;
+    return VP_OK;
+}
+
+int vp_section_cache_clear(vp_section_cache_t *c)
+{
+    if (!c) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < VP_SECTION_CACHE_SLOTS; i++) {
+        if (c->slots[i].pin_count > 0) continue;
+        free(c->slots[i].payload);
+        c->slots[i].payload = NULL;
+        c->slots[i].len = 0;
+        c->slots[i].name[0] = '\0';
+    }
+    return VP_OK;
+}

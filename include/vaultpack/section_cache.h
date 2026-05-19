@@ -52,6 +52,13 @@ int  vp_section_cache_get(vp_section_cache_t *c,
 int  vp_section_cache_pin(vp_section_cache_t *c, const char *name);
 int  vp_section_cache_unpin(vp_section_cache_t *c, const char *name);
 
+/* Statistics and selective eviction. */
+uint32_t vp_section_cache_slot_count(const vp_section_cache_t *c);
+uint64_t vp_section_cache_total_bytes(const vp_section_cache_t *c);
+uint32_t vp_section_cache_pinned_count(const vp_section_cache_t *c);
+int      vp_section_cache_remove(vp_section_cache_t *c, const char *name);
+int      vp_section_cache_clear(vp_section_cache_t *c);
+
 /* Test entry point used by the bridge. */
 int vp_section_cache_run(const uint8_t *data, size_t size);
 
