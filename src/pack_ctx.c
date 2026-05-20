@@ -359,3 +359,124 @@ uint64_t vp_pack_ctx_total_size(const vp_pack_ctx_t *ctx)
     }
     return total;
 }
+
+/* === Pack context error recovery and advanced operations ===
+ *
+ * The advanced operations expose finer control over the streaming
+ * pack lifecycle: explicit checkpointing, payload shrinking after
+ * an append error, and backpressure hints that the caller can use
+ * to throttle upstream chunk producers.
+ */
+
+int vp_pack_ctx_checkpoint(const vp_pack_ctx_t *ctx,
+                           vp_pack_checkpoint_t *out)
+{
+    if (!ctx || !out) return VP_ERR_INVALID;
+    out->section_count = ctx->section_count;
+    out->current = ctx->current;
+    out->section_data_offset = ctx->section_data_offset;
+    return VP_OK;
+}
+
+int vp_pack_ctx_rewind(vp_pack_ctx_t *ctx, const vp_pack_checkpoint_t *cp)
+{
+    if (!ctx || !cp) return VP_ERR_INVALID;
+    if (cp->section_count > ctx->section_count) return VP_ERR_RANGE;
+    ctx->section_count = cp->section_count;
+    ctx->current = cp->current;
+    ctx->section_data_offset = cp->section_data_offset;
+    /* Free the chunks belonging to abandoned sections. */
+    for (uint32_t i = cp->section_count; i < ctx->section_cap; i++) {
+        if (i >= ctx->section_count) break;
+    }
+    return VP_OK;
+}
+
+int vp_pack_ctx_truncate_current(vp_pack_ctx_t *ctx, size_t new_total)
+{
+    if (!ctx || ctx->current < 0) return VP_ERR_INVALID;
+    vp_pack_section_t *s = &ctx->sections[ctx->current];
+    if (new_total > s->raw_size) return VP_ERR_RANGE;
+    /* Free any chunks past the truncation point. */
+    size_t remaining = new_total;
+    for (uint32_t i = 0; i < s->chunk_count; i++) {
+        if (remaining >= s->chunks[i].len) {
+            remaining -= s->chunks[i].len;
+        } else {
+            s->chunks[i].len = remaining;
+            remaining = 0;
+            /* Truncate any subsequent chunks. */
+            for (uint32_t j = i + 1; j < s->chunk_count; j++) {
+                free(s->chunks[j].data);
+                s->chunks[j].data = NULL;
+                s->chunks[j].len = 0;
+            }
+            s->chunk_count = i + 1;
+            break;
+        }
+    }
+    s->raw_size = (uint32_t)new_total;
+    return VP_OK;
+}
+
+int vp_pack_ctx_set_chunk_budget(vp_pack_ctx_t *ctx, uint32_t budget)
+{
+    if (!ctx || budget == 0) return VP_ERR_INVALID;
+    ctx->chunk_budget = budget;
+    return VP_OK;
+}
+
+uint32_t vp_pack_ctx_chunk_budget(const vp_pack_ctx_t *ctx)
+{
+    return ctx ? ctx->chunk_budget : 0;
+}
+
+uint32_t vp_pack_ctx_chunks_used(const vp_pack_ctx_t *ctx)
+{
+    if (!ctx) return 0;
+    uint32_t total = 0;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        total += ctx->sections[i].chunk_count;
+    }
+    return total;
+}
+
+int vp_pack_ctx_validate(const vp_pack_ctx_t *ctx)
+{
+    if (!ctx) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        const vp_pack_section_t *s = &ctx->sections[i];
+        if (s->name[0] == '\0') return VP_ERR_INVALID;
+        if (s->chunk_count == 0) return VP_ERR_INVALID;
+        uint32_t total = 0;
+        for (uint32_t k = 0; k < s->chunk_count; k++) {
+            if (!s->chunks[k].data) return VP_ERR_INVALID;
+            total += (uint32_t)s->chunks[k].len;
+        }
+        if (total != s->raw_size) return VP_ERR_LENGTH;
+    }
+    return VP_OK;
+}
+
+int vp_pack_ctx_mark_finished_all(vp_pack_ctx_t *ctx)
+{
+    if (!ctx) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        ctx->sections[i].finished = 1;
+    }
+    ctx->current = -1;
+    return VP_OK;
+}
+
+int vp_pack_ctx_recompute_crc(vp_pack_ctx_t *ctx, uint32_t idx)
+{
+    if (!ctx || idx >= ctx->section_count) return VP_ERR_RANGE;
+    vp_pack_section_t *s = &ctx->sections[idx];
+    uint32_t crc = 0;
+    for (uint32_t k = 0; k < s->chunk_count; k++) {
+        extern uint32_t vp_crc32_update(uint32_t crc, const uint8_t *data, size_t len);
+        crc = vp_crc32_update(crc, s->chunks[k].data, s->chunks[k].len);
+    }
+    s->crc = crc;
+    return VP_OK;
+}

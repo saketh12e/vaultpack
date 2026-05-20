@@ -89,8 +89,25 @@ uint32_t vp_pack_ctx_current_size(const vp_pack_ctx_t *ctx);
 int      vp_pack_ctx_section_at(const vp_pack_ctx_t *ctx, uint32_t idx,
                                 vp_pack_section_t *out);
 int      vp_pack_ctx_abort_current(vp_pack_ctx_t *ctx);
-int      vp_pack_ctx_find(const vp_pack_ctx_t *ctx, const char *name);
+int  vp_pack_ctx_find(const vp_pack_ctx_t *ctx, const char *name);
 uint64_t vp_pack_ctx_total_size(const vp_pack_ctx_t *ctx);
+
+/* Checkpoint / rewind for incremental pack. */
+typedef struct vp_pack_checkpoint {
+    uint32_t section_count;
+    int32_t  current;
+    uint32_t section_data_offset;
+} vp_pack_checkpoint_t;
+
+int  vp_pack_ctx_checkpoint(const vp_pack_ctx_t *ctx, vp_pack_checkpoint_t *out);
+int  vp_pack_ctx_rewind(vp_pack_ctx_t *ctx, const vp_pack_checkpoint_t *cp);
+int  vp_pack_ctx_truncate_current(vp_pack_ctx_t *ctx, size_t new_total);
+int  vp_pack_ctx_set_chunk_budget(vp_pack_ctx_t *ctx, uint32_t budget);
+uint32_t vp_pack_ctx_chunk_budget(const vp_pack_ctx_t *ctx);
+uint32_t vp_pack_ctx_chunks_used(const vp_pack_ctx_t *ctx);
+int  vp_pack_ctx_validate(const vp_pack_ctx_t *ctx);
+int  vp_pack_ctx_mark_finished_all(vp_pack_ctx_t *ctx);
+int  vp_pack_ctx_recompute_crc(vp_pack_ctx_t *ctx, uint32_t idx);
 
 /* Test entry point used by the bridge. */
 int vp_pack_ctx_run(const uint8_t *data, size_t size);
