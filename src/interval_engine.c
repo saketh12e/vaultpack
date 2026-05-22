@@ -213,3 +213,157 @@ int vp_interval_engine_subtract(vp_interval_engine_t *e,
     }
     return VP_OK;
 }
+
+/* === Range query helpers ===
+ *
+ * Additional query helpers that compose the engine with caller
+ * data: covered extent, contiguous-run identification, and
+ * range-set difference.
+ */
+
+uint64_t vp_interval_engine_covered(const vp_interval_engine_t *e,
+                                    uint64_t start, uint64_t end)
+{
+    if (!e) return 0;
+    uint64_t total = 0;
+    for (uint32_t i = 0; i < e->count; i++) {
+        if (e->ranges[i].end <= start) continue;
+        if (e->ranges[i].start >= end) break;
+        uint64_t s = e->ranges[i].start > start ? e->ranges[i].start : start;
+        uint64_t e_e = e->ranges[i].end < end ? e->ranges[i].end : end;
+        total += e_e - s;
+    }
+    return total;
+}
+
+uint32_t vp_interval_engine_largest(const vp_interval_engine_t *e)
+{
+    if (!e || e->count == 0) return 0;
+    uint32_t best = 0;
+    uint64_t best_len = 0;
+    for (uint32_t i = 0; i < e->count; i++) {
+        uint64_t len = e->ranges[i].end - e->ranges[i].start;
+        if (len > best_len) {
+            best_len = len;
+            best = i;
+        }
+    }
+    return best;
+}
+
+uint32_t vp_interval_engine_smallest(const vp_interval_engine_t *e)
+{
+    if (!e || e->count == 0) return 0;
+    uint32_t best = 0;
+    uint64_t best_len = UINT64_MAX;
+    for (uint32_t i = 0; i < e->count; i++) {
+        uint64_t len = e->ranges[i].end - e->ranges[i].start;
+        if (len < best_len) {
+            best_len = len;
+            best = i;
+        }
+    }
+    return best;
+}
+
+int vp_interval_engine_contains_range(const vp_interval_engine_t *e,
+                                      uint64_t start, uint64_t end)
+{
+    if (!e || end <= start) return 0;
+    for (uint32_t i = 0; i < e->count; i++) {
+        if (e->ranges[i].start <= start && e->ranges[i].end >= end) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int vp_interval_engine_union(const vp_interval_engine_t *a,
+                             const vp_interval_engine_t *b,
+                             vp_interval_engine_t *out)
+{
+    if (!a || !b || !out) return VP_ERR_INVALID;
+    /* Merge a and b into out by walking both in parallel. */
+    uint32_t i = 0, j = 0;
+    while (i < a->count && j < b->count) {
+        uint64_t s = a->ranges[i].start < b->ranges[j].start
+                   ? a->ranges[i].start : b->ranges[j].start;
+        uint64_t e = a->ranges[i].end > b->ranges[j].end
+                   ? a->ranges[i].end : b->ranges[j].end;
+        int rc = vp_interval_engine_insert(out, s, e);
+        if (rc != VP_OK) return rc;
+        if (a->ranges[i].end < b->ranges[j].end) i++;
+        else j++;
+    }
+    while (i < a->count) {
+        int rc = vp_interval_engine_insert(out, a->ranges[i].start, a->ranges[i].end);
+        if (rc != VP_OK) return rc;
+        i++;
+    }
+    while (j < b->count) {
+        int rc = vp_interval_engine_insert(out, b->ranges[j].start, b->ranges[j].end);
+        if (rc != VP_OK) return rc;
+        j++;
+    }
+    return VP_OK;
+}
+
+int vp_interval_engine_intersect(const vp_interval_engine_t *a,
+                                 const vp_interval_engine_t *b,
+                                 vp_interval_engine_t *out)
+{
+    if (!a || !b || !out) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < a->count; i++) {
+        for (uint32_t j = 0; j < b->count; j++) {
+            uint64_t s = a->ranges[i].start > b->ranges[j].start
+                       ? a->ranges[i].start : b->ranges[j].start;
+            uint64_t e = a->ranges[i].end < b->ranges[j].end
+                       ? a->ranges[i].end : b->ranges[j].end;
+            if (s < e) {
+                int rc = vp_interval_engine_insert(out, s, e);
+                if (rc != VP_OK) return rc;
+            }
+        }
+    }
+    return VP_OK;
+}
+
+int vp_interval_engine_validate(const vp_interval_engine_t *e)
+{
+    if (!e) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < e->count; i++) {
+        if (e->ranges[i].end <= e->ranges[i].start) return VP_ERR_LENGTH;
+        if (i > 0 && e->ranges[i].start < e->ranges[i - 1].end) return VP_ERR_RANGE;
+    }
+    return VP_OK;
+}
+
+void vp_interval_engine_clear(vp_interval_engine_t *e)
+{
+    if (!e) return;
+    e->count = 0;
+}
+
+int vp_interval_engine_clone(const vp_interval_engine_t *src,
+                             vp_interval_engine_t *dst)
+{
+    if (!src || !dst) return VP_ERR_INVALID;
+    vp_interval_engine_init(dst);
+    for (uint32_t i = 0; i < src->count; i++) {
+        int rc = vp_interval_engine_insert(dst, src->ranges[i].start,
+                                            src->ranges[i].end);
+        if (rc != VP_OK) return rc;
+    }
+    return VP_OK;
+}
+
+int vp_interval_engine_extend(vp_interval_engine_t *e,
+                              const vp_interval_t *ranges, uint32_t count)
+{
+    if (!e || (!ranges && count > 0)) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < count; i++) {
+        int rc = vp_interval_engine_insert(e, ranges[i].start, ranges[i].end);
+        if (rc != VP_OK) return rc;
+    }
+    return VP_OK;
+}

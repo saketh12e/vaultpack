@@ -49,6 +49,26 @@ int  vp_interval_engine_within(const vp_interval_engine_t *e,
 int  vp_interval_engine_subtract(vp_interval_engine_t *e,
                                 uint64_t start, uint64_t end);
 
+/* Range query helpers. */
+uint64_t vp_interval_engine_covered(const vp_interval_engine_t *e,
+                                    uint64_t start, uint64_t end);
+uint32_t vp_interval_engine_largest(const vp_interval_engine_t *e);
+uint32_t vp_interval_engine_smallest(const vp_interval_engine_t *e);
+int  vp_interval_engine_contains_range(const vp_interval_engine_t *e,
+                                      uint64_t start, uint64_t end);
+int  vp_interval_engine_union(const vp_interval_engine_t *a,
+                             const vp_interval_engine_t *b,
+                             vp_interval_engine_t *out);
+int  vp_interval_engine_intersect(const vp_interval_engine_t *a,
+                                 const vp_interval_engine_t *b,
+                                 vp_interval_engine_t *out);
+int  vp_interval_engine_validate(const vp_interval_engine_t *e);
+void vp_interval_engine_clear(vp_interval_engine_t *e);
+int  vp_interval_engine_clone(const vp_interval_engine_t *src,
+                             vp_interval_engine_t *dst);
+int  vp_interval_engine_extend(vp_interval_engine_t *e,
+                              const vp_interval_t *ranges, uint32_t count);
+
 /* Test entry point used by the bridge. */
 int vp_interval_engine_run(const uint8_t *data, size_t size);
 
