@@ -239,3 +239,82 @@ int vp_section_cache_clear(vp_section_cache_t *c)
     }
     return VP_OK;
 }
+
+/* === Cache iteration and inspection ===
+ *
+ * Callers can iterate over slots without disturbing their pin state,
+ * look up a slot index by name, and read the cached payload's
+ * metadata. The iteration API is read-only.
+ */
+
+uint32_t vp_section_cache_find_slot(const vp_section_cache_t *c, const char *name)
+{
+    if (!c || !name) return (uint32_t)-1;
+    for (uint32_t i = 0; i < VP_SECTION_CACHE_SLOTS; i++) {
+        if (c->slots[i].payload && strcmp(c->slots[i].name, name) == 0) {
+            return i;
+        }
+    }
+    return (uint32_t)-1;
+}
+
+const char *vp_section_cache_slot_name(const vp_section_cache_t *c, uint32_t idx)
+{
+    if (!c || idx >= VP_SECTION_CACHE_SLOTS) return NULL;
+    return c->slots[idx].payload ? c->slots[idx].name : NULL;
+}
+
+size_t vp_section_cache_slot_len(const vp_section_cache_t *c, uint32_t idx)
+{
+    if (!c || idx >= VP_SECTION_CACHE_SLOTS) return 0;
+    return c->slots[idx].len;
+}
+
+uint32_t vp_section_cache_slot_pins(const vp_section_cache_t *c, uint32_t idx)
+{
+    if (!c || idx >= VP_SECTION_CACHE_SLOTS) return 0;
+    return c->slots[idx].pin_count;
+}
+
+int vp_section_cache_contains(const vp_section_cache_t *c, const char *name)
+{
+    return vp_section_cache_find_slot(c, name) != (uint32_t)-1;
+}
+
+int vp_section_cache_resize_slot(vp_section_cache_t *c,
+                                 const char *name, size_t new_len)
+{
+    if (!c || !name) return VP_ERR_INVALID;
+    uint32_t idx = vp_section_cache_find_slot(c, name);
+    if (idx == (uint32_t)-1) return VP_ERR_NOTFOUND;
+    if (c->slots[idx].pin_count > 0) return VP_ERR_FULL;
+    if (new_len <= c->slots[idx].cap) {
+        c->slots[idx].len = new_len;
+        return VP_OK;
+    }
+    uint8_t *p = (uint8_t *)realloc(c->slots[idx].payload, new_len);
+    if (!p) return VP_ERR_NOMEM;
+    c->slots[idx].payload = p;
+    c->slots[idx].cap = new_len;
+    c->slots[idx].len = new_len;
+    return VP_OK;
+}
+
+int vp_section_cache_iter(const vp_section_cache_t *c,
+                          vp_section_cache_iter_cb cb, void *user)
+{
+    if (!c) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < VP_SECTION_CACHE_SLOTS; i++) {
+        if (c->slots[i].payload && cb
+            && !cb(c->slots[i].name, c->slots[i].payload,
+                   c->slots[i].len, c->slots[i].pin_count, user)) {
+            return VP_ERR_TRUNCATED;
+        }
+    }
+    return VP_OK;
+}
+
+uint64_t vp_section_cache_hit_clock(const vp_section_cache_t *c)
+{
+    return c ? c->clock : 0;
+}

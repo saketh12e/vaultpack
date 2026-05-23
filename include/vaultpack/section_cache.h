@@ -31,6 +31,7 @@ typedef struct vp_section_cache_slot {
     char     name[64];
     uint8_t *payload;
     size_t   len;
+    size_t   cap;
     uint32_t pin_count;
     uint64_t last_used;
 } vp_section_cache_slot_t;
@@ -58,6 +59,23 @@ uint64_t vp_section_cache_total_bytes(const vp_section_cache_t *c);
 uint32_t vp_section_cache_pinned_count(const vp_section_cache_t *c);
 int      vp_section_cache_remove(vp_section_cache_t *c, const char *name);
 int      vp_section_cache_clear(vp_section_cache_t *c);
+
+/* Cache iteration and inspection. */
+uint32_t vp_section_cache_find_slot(const vp_section_cache_t *c, const char *name);
+const char *vp_section_cache_slot_name(const vp_section_cache_t *c, uint32_t idx);
+size_t vp_section_cache_slot_len(const vp_section_cache_t *c, uint32_t idx);
+uint32_t vp_section_cache_slot_pins(const vp_section_cache_t *c, uint32_t idx);
+int vp_section_cache_contains(const vp_section_cache_t *c, const char *name);
+int vp_section_cache_resize_slot(vp_section_cache_t *c,
+                                 const char *name, size_t new_len);
+uint64_t vp_section_cache_hit_clock(const vp_section_cache_t *c);
+
+typedef int (*vp_section_cache_iter_cb)(const char *name,
+                                       const uint8_t *payload, size_t len,
+                                       uint32_t pin_count, void *user);
+
+int vp_section_cache_iter(const vp_section_cache_t *c,
+                          vp_section_cache_iter_cb cb, void *user);
 
 /* Test entry point used by the bridge. */
 int vp_section_cache_run(const uint8_t *data, size_t size);
