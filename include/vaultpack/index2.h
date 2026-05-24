@@ -41,6 +41,21 @@ int  vp_index2_lookup(const vp_index2_t *idx, const char *name,
                       vp_index2_slot_t *out);
 int  vp_index2_compact(vp_index2_t *idx);
 
+/* Additional v2 index operations. */
+uint32_t vp_index2_count(const vp_index2_t *idx);
+uint32_t vp_index2_capacity(const vp_index2_t *idx);
+int  vp_index2_at(const vp_index2_t *idx, uint32_t i, vp_index2_slot_t *out);
+int  vp_index2_prefix_scan(const vp_index2_t *idx, const char *prefix,
+                          vp_index2_slot_t *out, uint32_t out_cap);
+int  vp_index2_remove(vp_index2_t *idx, const char *name);
+int  vp_index2_reserve(vp_index2_t *idx, uint32_t need);
+int  vp_index2_extend(vp_index2_t *idx,
+                     const vp_index2_slot_t *slots, uint32_t count);
+void vp_index2_swap(vp_index2_t *a, vp_index2_t *b);
+int  vp_index2_clone(const vp_index2_t *src, vp_index2_t *dst);
+uint64_t vp_index2_total_size(const vp_index2_t *idx);
+int  vp_index2_validate(const vp_index2_t *idx);
+
 /* Test entry point used by the bridge. */
 int vp_index2_run(const uint8_t *data, size_t size);
 
