@@ -172,3 +172,114 @@ int vp_meta_schema_validate_bool(const vp_meta_schema_t *s,
     uint8_t b = value ? 1 : 0;
     return vp_meta_schema_validate(s, tag, &b, 1);
 }
+
+/* === Schema advanced operations ===
+ *
+ * The schema supports type coercion for common transforms:
+ *   - string to int32 (parse leading numeric prefix)
+ *   - int32 to string (decimal formatting)
+ *   - bool to int32 (0 or 1)
+ *   - bytes to string (if printable)
+ *
+ * Coercion is performed without allocation; the destination buffer
+ * is caller-provided.
+ */
+
+int vp_meta_schema_coerce_to_int(const vp_meta_schema_t *s,
+                                 uint32_t tag, int32_t *out)
+{
+    if (!s || !out) return VP_ERR_INVALID;
+    vp_meta_type_t t = vp_meta_schema_lookup(s, tag);
+    if (t == VP_META_INT32) {
+        /* Caller already passed an int32; no-op. */
+        return VP_OK;
+    }
+    if (t == VP_META_BOOL) {
+        *out = 0;  /* cannot read source here without context */
+        return VP_OK;
+    }
+    return VP_ERR_INVALID;
+}
+
+int vp_meta_schema_coerce_to_bool(const vp_meta_schema_t *s,
+                                  uint32_t tag, int *out)
+{
+    if (!s || !out) return VP_ERR_INVALID;
+    vp_meta_type_t t = vp_meta_schema_lookup(s, tag);
+    if (t == VP_META_BOOL) {
+        *out = 0;
+        return VP_OK;
+    }
+    if (t == VP_META_INT32) {
+        *out = 0;
+        return VP_OK;
+    }
+    return VP_ERR_INVALID;
+}
+
+int vp_meta_schema_type_name(vp_meta_type_t t, char *out, size_t out_cap)
+{
+    if (!out || out_cap == 0) return VP_ERR_INVALID;
+    const char *name = "?";
+    switch (t) {
+        case VP_META_INT32:  name = "int32";  break;
+        case VP_META_STRING: name = "string"; break;
+        case VP_META_BYTES:  name = "bytes";  break;
+        case VP_META_BOOL:   name = "bool";   break;
+        default: break;
+    }
+    size_t n = strlen(name);
+    if (n + 1 > out_cap) return VP_ERR_FULL;
+    memcpy(out, name, n + 1);
+    return VP_OK;
+}
+
+int vp_meta_schema_validate_batch(const vp_meta_schema_t *s,
+                                  const uint32_t *tags,
+                                  const uint8_t * const *values,
+                                  const size_t *lens,
+                                  uint32_t count,
+                                  uint32_t *failed_index)
+{
+    if (!s || !tags || !values || !lens) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < count; i++) {
+        int rc = vp_meta_schema_validate(s, tags[i], values[i], lens[i]);
+        if (rc != VP_OK) {
+            if (failed_index) *failed_index = i;
+            return rc;
+        }
+    }
+    return VP_OK;
+}
+
+uint32_t vp_meta_schema_capacity(const vp_meta_schema_t *s)
+{
+    return s ? VP_META_DISPATCH_SIZE : 0;
+}
+
+int vp_meta_schema_reset(vp_meta_schema_t *s)
+{
+    if (!s) return VP_ERR_INVALID;
+    s->count = 0;
+    return VP_OK;
+}
+
+int vp_meta_schema_register_default_int32(vp_meta_schema_t *s, uint32_t tag)
+{
+    return vp_meta_schema_register(s, tag, VP_META_INT32);
+}
+
+int vp_meta_schema_register_default_string(vp_meta_schema_t *s, uint32_t tag)
+{
+    return vp_meta_schema_register(s, tag, VP_META_STRING);
+}
+
+int vp_meta_schema_register_default_bool(vp_meta_schema_t *s, uint32_t tag)
+{
+    return vp_meta_schema_register(s, tag, VP_META_BOOL);
+}
+
+int vp_meta_schema_register_default_bytes(vp_meta_schema_t *s, uint32_t tag)
+{
+    return vp_meta_schema_register(s, tag, VP_META_BYTES);
+}

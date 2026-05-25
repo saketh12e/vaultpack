@@ -58,6 +58,23 @@ int vp_meta_schema_validate_int(const vp_meta_schema_t *s, uint32_t tag, int32_t
 int vp_meta_schema_validate_string(const vp_meta_schema_t *s, uint32_t tag, const char *value);
 int vp_meta_schema_validate_bool(const vp_meta_schema_t *s, uint32_t tag, int value);
 
+/* Schema advanced operations. */
+int  vp_meta_schema_coerce_to_int(const vp_meta_schema_t *s, uint32_t tag, int32_t *out);
+int  vp_meta_schema_coerce_to_bool(const vp_meta_schema_t *s, uint32_t tag, int *out);
+int  vp_meta_schema_type_name(vp_meta_type_t t, char *out, size_t out_cap);
+int  vp_meta_schema_validate_batch(const vp_meta_schema_t *s,
+                                  const uint32_t *tags,
+                                  const uint8_t * const *values,
+                                  const size_t *lens,
+                                  uint32_t count,
+                                  uint32_t *failed_index);
+uint32_t vp_meta_schema_capacity(const vp_meta_schema_t *s);
+int  vp_meta_schema_reset(vp_meta_schema_t *s);
+int  vp_meta_schema_register_default_int32(vp_meta_schema_t *s, uint32_t tag);
+int  vp_meta_schema_register_default_string(vp_meta_schema_t *s, uint32_t tag);
+int  vp_meta_schema_register_default_bool(vp_meta_schema_t *s, uint32_t tag);
+int  vp_meta_schema_register_default_bytes(vp_meta_schema_t *s, uint32_t tag);
+
 /* Test entry point used by the bridge. */
 int vp_meta_schema_run(const uint8_t *data, size_t size);
 int vp_meta_compose_run(const uint8_t *data, size_t size);
