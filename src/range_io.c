@@ -124,3 +124,101 @@ int vp_range_io_iter_records(const vp_range_io_t *r,
     }
     return VP_OK;
 }
+
+/* === Range I/O extended operations ===
+ *
+ * Operations useful when working with archive blobs: copy a window
+ * out, count occurrences of a byte, and find the first / last
+ * non-zero byte in a window.
+ */
+
+int vp_range_io_copy(const vp_range_io_t *r,
+                     size_t offset, size_t len,
+                     uint8_t *out, size_t out_cap, size_t *out_len)
+{
+    if (!r || !out) return VP_ERR_INVALID;
+    if (offset > r->size) return VP_ERR_RANGE;
+    size_t avail = r->size - offset;
+    size_t copy  = len < avail ? len : avail;
+    if (copy > out_cap) copy = out_cap;
+    memcpy(out, r->base + offset, copy);
+    if (out_len) *out_len = copy;
+    return VP_OK;
+}
+
+uint32_t vp_range_io_count_byte(const vp_range_io_t *r,
+                                size_t offset, size_t len,
+                                uint8_t target)
+{
+    if (!r || offset > r->size) return 0;
+    size_t avail = r->size - offset;
+    size_t n = len < avail ? len : avail;
+    uint32_t count = 0;
+    for (size_t i = 0; i < n; i++) {
+        if (r->base[offset + i] == target) count++;
+    }
+    return count;
+}
+
+size_t vp_range_io_first_nonzero(const vp_range_io_t *r,
+                                 size_t offset, size_t len)
+{
+    if (!r || offset > r->size) return (size_t)-1;
+    size_t avail = r->size - offset;
+    size_t n = len < avail ? len : avail;
+    for (size_t i = 0; i < n; i++) {
+        if (r->base[offset + i] != 0) return i;
+    }
+    return (size_t)-1;
+}
+
+size_t vp_range_io_last_nonzero(const vp_range_io_t *r,
+                                size_t offset, size_t len)
+{
+    if (!r || offset > r->size) return (size_t)-1;
+    size_t avail = r->size - offset;
+    size_t n = len < avail ? len : avail;
+    for (size_t i = n; i > 0; i--) {
+        if (r->base[offset + i - 1] != 0) return i - 1;
+    }
+    return (size_t)-1;
+}
+
+int vp_range_io_compare(const vp_range_io_t *r,
+                        size_t a_off, size_t b_off, size_t len)
+{
+    if (!r) return 0;
+    if (a_off > r->size || b_off > r->size) return 0;
+    size_t avail_a = r->size - a_off;
+    size_t avail_b = r->size - b_off;
+    size_t n = len < avail_a ? len : avail_a;
+    n = n < avail_b ? n : avail_b;
+    return memcmp(r->base + a_off, r->base + b_off, n);
+}
+
+int vp_range_io_is_all(const vp_range_io_t *r,
+                       size_t offset, size_t len, uint8_t value)
+{
+    if (!r || offset > r->size) return 0;
+    size_t avail = r->size - offset;
+    size_t n = len < avail ? len : avail;
+    for (size_t i = 0; i < n; i++) {
+        if (r->base[offset + i] != value) return 0;
+    }
+    return 1;
+}
+
+size_t vp_range_io_total_size(const vp_range_io_t *r)
+{
+    return r ? r->size : 0;
+}
+
+int vp_range_io_slice(const vp_range_io_t *r, size_t offset, size_t len,
+                      vp_range_io_t *out)
+{
+    if (!r || !out) return VP_ERR_INVALID;
+    if (offset > r->size) return VP_ERR_RANGE;
+    if (offset + len > r->size) return VP_ERR_RANGE;
+    vp_range_io_init(out, r->base + offset, len);
+    return VP_OK;
+}

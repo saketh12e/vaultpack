@@ -54,6 +54,23 @@ int vp_range_io_iter_records(const vp_range_io_t *r,
                              size_t count, vp_range_record_cb cb,
                              void *user);
 
+/* Range I/O extended operations. */
+int     vp_range_io_copy(const vp_range_io_t *r, size_t offset, size_t len,
+                         uint8_t *out, size_t out_cap, size_t *out_len);
+uint32_t vp_range_io_count_byte(const vp_range_io_t *r,
+                                size_t offset, size_t len, uint8_t target);
+size_t  vp_range_io_first_nonzero(const vp_range_io_t *r,
+                                  size_t offset, size_t len);
+size_t  vp_range_io_last_nonzero(const vp_range_io_t *r,
+                                 size_t offset, size_t len);
+int     vp_range_io_compare(const vp_range_io_t *r,
+                            size_t a_off, size_t b_off, size_t len);
+int     vp_range_io_is_all(const vp_range_io_t *r,
+                           size_t offset, size_t len, uint8_t value);
+size_t  vp_range_io_total_size(const vp_range_io_t *r);
+int     vp_range_io_slice(const vp_range_io_t *r, size_t offset, size_t len,
+                          vp_range_io_t *out);
+
 /* Archive view: open an archive via the range reader and read out
  * its directory. The view borrows the section payloads from the
  * range reader. */
