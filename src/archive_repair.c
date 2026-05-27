@@ -9,6 +9,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "vaultpack/repair.h"
 #include "vaultpack/error.h"
@@ -95,4 +96,111 @@ int vp_archive_repair_run(const uint8_t *data, size_t size)
     vp_repair_scan(&r);
     vp_repair_ctx_destroy(&r);
     return 0;
+}
+
+/* === Repair advanced operations ===
+ *
+ * Additional helpers used by archive maintenance tooling: record
+ * lookup by offset, record count, record iteration, and
+ * reconstruction of a minimal central directory from the
+ * recovered records.
+ */
+
+uint32_t vp_repair_count(const vp_repair_ctx_t *r)
+{
+    return r ? r->count : 0;
+}
+
+int vp_repair_at(const vp_repair_ctx_t *r, uint32_t idx,
+                 vp_repair_record_t *out)
+{
+    if (!r || !out || idx >= r->count) return VP_ERR_RANGE;
+    *out = r->records[idx];
+    return VP_OK;
+}
+
+uint32_t vp_repair_total_raw(const vp_repair_ctx_t *r)
+{
+    if (!r) return 0;
+    uint32_t total = 0;
+    for (uint32_t i = 0; i < r->count; i++) total += r->records[i].raw_size;
+    return total;
+}
+
+uint32_t vp_repair_total_comp(const vp_repair_ctx_t *r)
+{
+    if (!r) return 0;
+    uint32_t total = 0;
+    for (uint32_t i = 0; i < r->count; i++) total += r->records[i].comp_size;
+    return total;
+}
+
+int vp_repair_find_at_offset(const vp_repair_ctx_t *r, uint64_t offset)
+{
+    if (!r) return -1;
+    for (uint32_t i = 0; i < r->count; i++) {
+        if (r->records[i].offset == offset) return (int)i;
+    }
+    return -1;
+}
+
+int vp_repair_iter(const vp_repair_ctx_t *r,
+                   vp_repair_iter_cb cb, void *user)
+{
+    if (!r || !cb) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < r->count; i++) {
+        if (!cb(&r->records[i], user)) return VP_ERR_TRUNCATED;
+    }
+    return VP_OK;
+}
+
+int vp_repair_emit_directory(const vp_repair_ctx_t *r,
+                             uint8_t *out, size_t out_cap, size_t *out_len)
+{
+    if (!r || !out) return VP_ERR_INVALID;
+    if (out_cap < (size_t)r->count * 58u) return VP_ERR_FULL;
+    uint8_t *p = out;
+    for (uint32_t i = 0; i < r->count; i++) {
+        const vp_repair_record_t *rec = &r->records[i];
+        memset(p, 0, 58);
+        snprintf((char *)p, 32, "recovered_%u", i);
+        p[32] = (uint8_t)rec->offset;
+        p[33] = (uint8_t)(rec->offset >> 8);
+        p[34] = (uint8_t)(rec->offset >> 16);
+        p[35] = (uint8_t)(rec->offset >> 24);
+        p[36] = (uint8_t)(rec->offset >> 32);
+        p[37] = (uint8_t)(rec->offset >> 40);
+        p[38] = (uint8_t)(rec->offset >> 48);
+        p[39] = (uint8_t)(rec->offset >> 56);
+        p[40] = (uint8_t)rec->raw_size;
+        p[41] = (uint8_t)(rec->raw_size >> 8);
+        p[42] = (uint8_t)(rec->raw_size >> 16);
+        p[43] = (uint8_t)(rec->raw_size >> 24);
+        p[44] = 0;
+        p[45] = 0;
+        p[46] = 0;
+        p[47] = 0;
+        p += 58;
+    }
+    if (out_len) *out_len = (size_t)r->count * 58u;
+    return VP_OK;
+}
+
+int vp_repair_rescan(vp_repair_ctx_t *r)
+{
+    if (!r) return VP_ERR_INVALID;
+    r->count = 0;
+    return vp_repair_scan(r);
+}
+
+int vp_repair_validate(const vp_repair_ctx_t *r)
+{
+    if (!r) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < r->count; i++) {
+        if (r->records[i].comp_size > 0
+            && r->records[i].offset + 24 + r->records[i].comp_size > r->blob_len) {
+            return VP_ERR_RANGE;
+        }
+    }
+    return VP_OK;
 }

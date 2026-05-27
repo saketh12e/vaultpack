@@ -40,6 +40,21 @@ void vp_repair_ctx_destroy(vp_repair_ctx_t *r);
 
 int  vp_repair_scan(vp_repair_ctx_t *r);
 
+/* Repair advanced operations. */
+uint32_t vp_repair_count(const vp_repair_ctx_t *r);
+int vp_repair_at(const vp_repair_ctx_t *r, uint32_t idx, vp_repair_record_t *out);
+uint32_t vp_repair_total_raw(const vp_repair_ctx_t *r);
+uint32_t vp_repair_total_comp(const vp_repair_ctx_t *r);
+int vp_repair_find_at_offset(const vp_repair_ctx_t *r, uint64_t offset);
+
+typedef int (*vp_repair_iter_cb)(const vp_repair_record_t *rec, void *user);
+
+int vp_repair_iter(const vp_repair_ctx_t *r, vp_repair_iter_cb cb, void *user);
+int vp_repair_emit_directory(const vp_repair_ctx_t *r,
+                             uint8_t *out, size_t out_cap, size_t *out_len);
+int vp_repair_rescan(vp_repair_ctx_t *r);
+int vp_repair_validate(const vp_repair_ctx_t *r);
+
 /* Test entry point used by the bridge. */
 int vp_archive_repair_run(const uint8_t *data, size_t size);
 
