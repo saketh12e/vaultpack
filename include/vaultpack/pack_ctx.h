@@ -126,6 +126,19 @@ int  vp_chunk_assembler_finalize(vp_chunk_assembler_t *a,
                                  uint8_t **out, size_t *out_len);
 void vp_chunk_assembler_destroy(vp_chunk_assembler_t *a);
 
+/* Chunk assembler advanced operations. */
+int vp_chunk_assembler_reserve(vp_chunk_assembler_t *a, size_t cap);
+int vp_chunk_assembler_seek(vp_chunk_assembler_t *a, size_t pos);
+int vp_chunk_assembler_write_at(vp_chunk_assembler_t *a, size_t pos,
+                                const uint8_t *data, size_t len);
+size_t vp_chunk_assembler_remaining(const vp_chunk_assembler_t *a);
+size_t vp_chunk_assembler_capacity(const vp_chunk_assembler_t *a);
+size_t vp_chunk_assembler_size(const vp_chunk_assembler_t *a);
+int vp_chunk_assembler_reset(vp_chunk_assembler_t *a);
+int vp_chunk_assembler_clone(const vp_chunk_assembler_t *src,
+                             vp_chunk_assembler_t *dst);
+int vp_chunk_assembler_validate(const vp_chunk_assembler_t *a);
+
 typedef struct vp_dir_entry_desc {
     char     name[32];
     uint64_t offset;
@@ -147,10 +160,45 @@ int  vp_dir_emit_serialize(const vp_dir_emit_t *e,
                            uint8_t *out, size_t out_cap, size_t *out_len);
 void vp_dir_emit_destroy(vp_dir_emit_t *e);
 
+/* Directory emitter advanced operations. */
+uint32_t vp_dir_emit_count(const vp_dir_emit_t *e);
+uint32_t vp_dir_emit_capacity(const vp_dir_emit_t *e);
+int vp_dir_emit_lookup(const vp_dir_emit_t *e, const char *name,
+                       vp_dir_entry_desc_t *out);
+int vp_dir_emit_at(const vp_dir_emit_t *e, uint32_t idx,
+                   vp_dir_entry_desc_t *out);
+int vp_dir_emit_remove(vp_dir_emit_t *e, const char *name);
+int vp_dir_emit_update(vp_dir_emit_t *e, const char *name,
+                       uint64_t offset, uint32_t size, uint8_t type);
+int vp_dir_emit_clear(vp_dir_emit_t *e);
+int vp_dir_emit_reserve(vp_dir_emit_t *e, uint32_t cap);
+
+typedef int (*vp_dir_emit_iter_cb)(const vp_dir_entry_desc_t *e, void *user);
+
+int vp_dir_emit_iter(const vp_dir_emit_t *e, vp_dir_emit_iter_cb cb, void *user);
+int vp_dir_emit_clone(const vp_dir_emit_t *src, vp_dir_emit_t *dst);
+uint64_t vp_dir_emit_total_size(const vp_dir_emit_t *e);
+int vp_dir_emit_sort_by_name(vp_dir_emit_t *e);
+
 /* Abort / rollback helpers. */
 int  vp_pack_abort_section(vp_pack_section_t *s);
 int  vp_pack_abort_check_duplicate(vp_pack_ctx_t *ctx, const char *name);
 int  vp_pack_abort_check_crc(vp_pack_section_t *s, uint32_t expected);
+
+/* Abort advanced operations. */
+int vp_pack_section_clear(vp_pack_section_t *s);
+int vp_pack_section_is_finished(const vp_pack_section_t *s);
+uint32_t vp_pack_section_chunk_count(const vp_pack_section_t *s);
+uint32_t vp_pack_section_raw_size(const vp_pack_section_t *s);
+uint32_t vp_pack_section_crc(const vp_pack_section_t *s);
+uint8_t vp_pack_section_type(const vp_pack_section_t *s);
+uint32_t vp_pack_section_flags(const vp_pack_section_t *s);
+const char *vp_pack_section_name(const vp_pack_section_t *s);
+int vp_pack_section_set_type(vp_pack_section_t *s, uint8_t type);
+int vp_pack_section_set_flags(vp_pack_section_t *s, uint32_t flags);
+int vp_pack_section_validate(const vp_pack_section_t *s);
+int vp_pack_abort_all(vp_pack_ctx_t *ctx);
+int vp_pack_abort_above(vp_pack_ctx_t *ctx, uint32_t threshold);
 
 #ifdef __cplusplus
 }

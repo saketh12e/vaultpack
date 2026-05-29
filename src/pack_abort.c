@@ -58,3 +58,108 @@ int vp_pack_abort_check_crc(vp_pack_section_t *s, uint32_t expected)
     }
     return VP_OK;
 }
+
+/* === Abort advanced operations ===
+ *
+ * The abort path supports section-level reset without freeing
+ * the underlying chunk array, which keeps the section handle
+ * reusable for a follow-up begin() call.
+ */
+
+int vp_pack_section_clear(vp_pack_section_t *s)
+{
+    if (!s) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < s->chunk_count; i++) {
+        free(s->chunks[i].data);
+        s->chunks[i].data = NULL;
+        s->chunks[i].len = 0;
+    }
+    s->chunk_count = 0;
+    s->raw_size = 0;
+    s->crc = 0;
+    s->finished = 0;
+    return VP_OK;
+}
+
+int vp_pack_section_is_finished(const vp_pack_section_t *s)
+{
+    return s && s->finished;
+}
+
+uint32_t vp_pack_section_chunk_count(const vp_pack_section_t *s)
+{
+    return s ? s->chunk_count : 0;
+}
+
+uint32_t vp_pack_section_raw_size(const vp_pack_section_t *s)
+{
+    return s ? s->raw_size : 0;
+}
+
+uint32_t vp_pack_section_crc(const vp_pack_section_t *s)
+{
+    return s ? s->crc : 0;
+}
+
+uint8_t vp_pack_section_type(const vp_pack_section_t *s)
+{
+    return s ? s->type : 0;
+}
+
+uint32_t vp_pack_section_flags(const vp_pack_section_t *s)
+{
+    return s ? s->flags : 0;
+}
+
+const char *vp_pack_section_name(const vp_pack_section_t *s)
+{
+    return s ? s->name : NULL;
+}
+
+int vp_pack_section_set_type(vp_pack_section_t *s, uint8_t type)
+{
+    if (!s) return VP_ERR_INVALID;
+    s->type = type;
+    return VP_OK;
+}
+
+int vp_pack_section_set_flags(vp_pack_section_t *s, uint32_t flags)
+{
+    if (!s) return VP_ERR_INVALID;
+    s->flags = flags;
+    return VP_OK;
+}
+
+int vp_pack_section_validate(const vp_pack_section_t *s)
+{
+    if (!s) return VP_ERR_INVALID;
+    if (!s->finished) return VP_ERR_INVALID;
+    if (s->chunk_count == 0) return VP_ERR_INVALID;
+    if (s->raw_size == 0) return VP_ERR_INVALID;
+    return VP_OK;
+}
+
+int vp_pack_abort_all(vp_pack_ctx_t *ctx)
+{
+    if (!ctx) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        int rc = vp_pack_abort_section(&ctx->sections[i]);
+        if (rc != VP_OK) return rc;
+    }
+    ctx->current = -1;
+    return VP_OK;
+}
+
+int vp_pack_abort_above(vp_pack_ctx_t *ctx, uint32_t threshold)
+{
+    if (!ctx) return VP_ERR_INVALID;
+    for (uint32_t i = threshold; i < ctx->section_count; i++) {
+        int rc = vp_pack_abort_section(&ctx->sections[i]);
+        if (rc != VP_OK) return rc;
+    }
+    ctx->section_count = threshold;
+    if (ctx->current >= 0 && (uint32_t)ctx->current >= threshold) {
+        ctx->current = -1;
+    }
+    return VP_OK;
+}
