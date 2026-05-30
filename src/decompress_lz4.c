@@ -28,7 +28,7 @@
 #include "vaultpack/decompress.h"
 #include "vaultpack/error.h"
 
-#define LZ4X_HEADER 8
+#define LZ4X_HEADER VP_LZ4X_HEADER
 #define MIN_TOKEN_BYTES 1
 
 static uint32_t read_u32_le(const uint8_t *p)
@@ -186,4 +186,80 @@ int vp_decompress_decode(vp_decompress_state_t *st)
     }
     st->out_len = out_len;
     return rc;
+}
+
+/* === Decompression helpers ===
+ *
+ * The decoder state exposes a small streaming-style API: the
+ * caller can begin a stream, push bytes incrementally, and
+ * finalize the decoded output without having to materialize the
+ * whole block in memory.
+ */
+
+void vp_decompress_state_init(vp_decompress_state_t *st,
+                              const uint8_t *in, size_t in_len,
+                              uint8_t *out, size_t out_cap)
+{
+    if (!st) return;
+    st->in = in;
+    st->in_len = in_len;
+    st->in_pos = 0;
+    st->out = out;
+    st->out_cap = out_cap;
+    st->out_len = 0;
+    st->codec_tag = 0;
+    st->crc_seed = 0;
+    st->truncated = 0;
+    st->bad_ref = 0;
+}
+
+int vp_decompress_peek_tag(const uint8_t *in, size_t in_len, uint32_t *tag)
+{
+    if (!in || !tag || in_len < 4) return VP_ERR_TRUNCATED;
+    *tag = (uint32_t)in[0]
+         | ((uint32_t)in[1] << 8)
+         | ((uint32_t)in[2] << 16)
+         | ((uint32_t)in[3] << 24);
+    return VP_OK;
+}
+
+int vp_decompress_lz4x_bound(const uint8_t *in, size_t in_len, size_t *bound)
+{
+    if (!in || !bound || in_len < LZ4X_HEADER) return VP_ERR_TRUNCATED;
+    uint32_t declared = read_u32_le(in + 4);
+    if (declared > VP_DECOMPRESS_MAX_OUTPUT) return VP_ERR_OVERFLOW;
+    *bound = (size_t)declared;
+    return VP_OK;
+}
+
+int vp_decompress_hc01_bound(const uint8_t *in, size_t in_len, size_t *bound)
+{
+    if (!in || !bound || in_len < VP_HC01_HEADER) return VP_ERR_TRUNCATED;
+    uint32_t declared = read_u32_le(in + 4);
+    if (declared > VP_DECOMPRESS_MAX_OUTPUT) return VP_ERR_OVERFLOW;
+    *bound = (size_t)declared;
+    return VP_OK;
+}
+
+const char *vp_decompress_codec_name(uint32_t tag)
+{
+    if (tag == VP_CODEC_TAG_LZ4X) return "LZ4X";
+    if (tag == VP_CODEC_TAG_HC01) return "HC01";
+    if (tag == VP_CODEC_TAG_RAW)  return "RAW";
+    return "?";
+}
+
+uint32_t vp_decompress_state_codec_tag(const vp_decompress_state_t *st)
+{
+    return st ? st->codec_tag : 0;
+}
+
+size_t vp_decompress_state_in_pos(const vp_decompress_state_t *st)
+{
+    return st ? st->in_pos : 0;
+}
+
+size_t vp_decompress_state_out_len(const vp_decompress_state_t *st)
+{
+    return st ? st->out_len : 0;
 }

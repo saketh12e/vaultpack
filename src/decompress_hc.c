@@ -25,7 +25,7 @@
 #include "vaultpack/decompress.h"
 #include "vaultpack/error.h"
 
-#define HC01_HEADER 8
+#define HC01_HEADER VP_HC01_HEADER
 
 static uint32_t read_u32_le(const uint8_t *p)
 {

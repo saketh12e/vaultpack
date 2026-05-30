@@ -61,6 +61,18 @@ int vp_decompress_lz4x(const uint8_t *in, size_t in_len,
 int vp_decompress_hc01(const uint8_t *in, size_t in_len,
                        uint8_t *out, size_t out_cap, size_t *out_len);
 
+/* Decompression helpers. */
+void vp_decompress_state_init(vp_decompress_state_t *st,
+                              const uint8_t *in, size_t in_len,
+                              uint8_t *out, size_t out_cap);
+int  vp_decompress_peek_tag(const uint8_t *in, size_t in_len, uint32_t *tag);
+int  vp_decompress_lz4x_bound(const uint8_t *in, size_t in_len, size_t *bound);
+int  vp_decompress_hc01_bound(const uint8_t *in, size_t in_len, size_t *bound);
+const char *vp_decompress_codec_name(uint32_t tag);
+uint32_t vp_decompress_state_codec_tag(const vp_decompress_state_t *st);
+size_t vp_decompress_state_in_pos(const vp_decompress_state_t *st);
+size_t vp_decompress_state_out_len(const vp_decompress_state_t *st);
+
 /* Maximum decoded size accepted by a single block decode. Caps the
  * decoder's worst-case growth so a malformed length prefix cannot
  * exhaust the heap before the truncation check fires. */
@@ -74,6 +86,14 @@ int vp_decompress_hc01(const uint8_t *in, size_t in_len,
 /* Maximum match length accepted by LZ4X. Mirrors VP_DECOMPRESS_MAX_OUTPUT
  * but scoped to a single back-reference. */
 #define VP_DECOMPRESS_MAX_MATCH ((size_t)(1u << 16))
+
+/* Header sizes for the bundled codecs. The header layout is:
+ *   uint32_t tag
+ *   uint32_t declared_size
+ *   ... token stream starts at offset 8.
+ */
+#define VP_LZ4X_HEADER 8
+#define VP_HC01_HEADER 8
 
 #ifdef __cplusplus
 }
