@@ -91,6 +91,24 @@ void vp_archive_view_init(vp_archive_view_t *v);
 void vp_archive_view_destroy(vp_archive_view_t *v);
 int  vp_archive_view_open(vp_archive_view_t *v, const vp_range_io_t *r);
 
+/* Archive view additional operations. */
+int vp_archive_view_lookup(const vp_archive_view_t *v, const char *name,
+                           vp_view_entry_t *out);
+int vp_archive_view_at(const vp_archive_view_t *v, uint32_t idx,
+                       vp_view_entry_t *out);
+uint32_t vp_archive_view_count(const vp_archive_view_t *v);
+
+typedef int (*vp_archive_view_iter_cb)(const vp_view_entry_t *e, void *user);
+
+int vp_archive_view_iter(const vp_archive_view_t *v,
+                         vp_archive_view_iter_cb cb, void *user);
+int vp_archive_view_read_payload(const vp_archive_view_t *v,
+                                 const vp_range_io_t *r,
+                                 uint32_t idx,
+                                 uint8_t *out, size_t out_cap,
+                                 size_t *out_len);
+uint64_t vp_archive_view_total_size(const vp_archive_view_t *v);
+
 /* Prefetch helpers (declared here to keep the cache headers slim). */
 int  vp_prefetch_directory(const vp_range_io_t *r,
                            size_t entry_count,

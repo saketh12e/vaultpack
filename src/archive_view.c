@@ -69,3 +69,71 @@ int vp_archive_view_open(vp_archive_view_t *v, const vp_range_io_t *r)
     }
     return VP_OK;
 }
+
+/* === Archive view additional operations ===
+ *
+ * Look up entries by name, iterate, and read a section's payload
+ * out of the underlying range.
+ */
+
+int vp_archive_view_lookup(const vp_archive_view_t *v, const char *name,
+                           vp_view_entry_t *out)
+{
+    if (!v || !name || !out) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < v->entry_count; i++) {
+        if (strcmp(v->entries[i].name, name) == 0) {
+            *out = v->entries[i];
+            return VP_OK;
+        }
+    }
+    return VP_ERR_NOTFOUND;
+}
+
+int vp_archive_view_at(const vp_archive_view_t *v, uint32_t idx,
+                       vp_view_entry_t *out)
+{
+    if (!v || !out || idx >= v->entry_count) return VP_ERR_RANGE;
+    *out = v->entries[idx];
+    return VP_OK;
+}
+
+uint32_t vp_archive_view_count(const vp_archive_view_t *v)
+{
+    return v ? v->entry_count : 0;
+}
+
+int vp_archive_view_iter(const vp_archive_view_t *v,
+                         vp_archive_view_iter_cb cb, void *user)
+{
+    if (!v || !cb) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < v->entry_count; i++) {
+        if (!cb(&v->entries[i], user)) return VP_ERR_TRUNCATED;
+    }
+    return VP_OK;
+}
+
+int vp_archive_view_read_payload(const vp_archive_view_t *v,
+                                 const vp_range_io_t *r,
+                                 uint32_t idx,
+                                 uint8_t *out, size_t out_cap,
+                                 size_t *out_len)
+{
+    if (!v || !r || !out || !out_len) return VP_ERR_INVALID;
+    if (idx >= v->entry_count) return VP_ERR_RANGE;
+    const vp_view_entry_t *e = &v->entries[idx];
+    if (e->size > out_cap) return VP_ERR_FULL;
+    if (e->offset + e->size > r->size) return VP_ERR_RANGE;
+    memcpy(out, r->base + e->offset, e->size);
+    *out_len = e->size;
+    return VP_OK;
+}
+
+uint64_t vp_archive_view_total_size(const vp_archive_view_t *v)
+{
+    if (!v) return 0;
+    uint64_t total = 0;
+    for (uint32_t i = 0; i < v->entry_count; i++) {
+        total += v->entries[i].size;
+    }
+    return total;
+}
