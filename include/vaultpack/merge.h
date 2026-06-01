@@ -21,6 +21,10 @@
 extern "C" {
 #endif
 
+/* Forward declaration so callers can describe sections before
+ * the pack context header is included. */
+typedef struct vp_dir_entry_desc vp_dir_entry_desc_t;
+
 typedef struct vp_merge_ctx {
     const uint8_t *src_a;
     size_t         src_a_len;
@@ -38,6 +42,52 @@ void vp_merge_ctx_init(vp_merge_ctx_t *m,
 void vp_merge_ctx_destroy(vp_merge_ctx_t *m);
 
 int  vp_merge_run(vp_merge_ctx_t *m);
+
+/* Archive merge advanced operations. */
+int vp_merge_run_full(vp_merge_ctx_t *m,
+                      const vp_dir_entry_desc_t *a_entries, uint32_t a_count,
+                      const vp_dir_entry_desc_t *b_entries, uint32_t b_count,
+                      const uint8_t *a_payload, size_t a_payload_len,
+                      const uint8_t *b_payload, size_t b_payload_len);
+uint32_t vp_merge_conflict_count(const vp_merge_ctx_t *m);
+size_t vp_merge_output_size(const vp_merge_ctx_t *m);
+const uint8_t *vp_merge_output_buffer(const vp_merge_ctx_t *m);
+
+/* Archive diff context and operations. */
+typedef enum vp_diff_kind {
+    VP_DIFF_ADDED   = 1,
+    VP_DIFF_REMOVED = 2,
+    VP_DIFF_CHANGED = 3
+} vp_diff_kind_t;
+
+typedef struct vp_diff_entry {
+    char          name[32];
+    vp_diff_kind_t kind;
+    uint32_t      old_crc;
+    uint32_t      new_crc;
+} vp_diff_entry_t;
+
+typedef struct vp_diff_ctx {
+    vp_diff_entry_t *entries;
+    uint32_t         count;
+    uint32_t         cap;
+} vp_diff_ctx_t;
+
+void vp_diff_ctx_init(vp_diff_ctx_t *d);
+void vp_diff_ctx_destroy(vp_diff_ctx_t *d);
+int  vp_diff_compare_sections(vp_diff_ctx_t *d,
+                              const vp_dir_entry_desc_t *a, uint32_t a_count,
+                              const vp_dir_entry_desc_t *b, uint32_t b_count);
+uint32_t vp_diff_count(const vp_diff_ctx_t *d);
+uint32_t vp_diff_added_count(const vp_diff_ctx_t *d);
+uint32_t vp_diff_removed_count(const vp_diff_ctx_t *d);
+uint32_t vp_diff_changed_count(const vp_diff_ctx_t *d);
+int      vp_diff_at(const vp_diff_ctx_t *d, uint32_t idx, vp_diff_entry_t *out);
+
+typedef int (*vp_diff_iter_cb)(const vp_diff_entry_t *e, void *user);
+
+int vp_diff_iter(const vp_diff_ctx_t *d, vp_diff_iter_cb cb, void *user);
+int vp_diff_clear(vp_diff_ctx_t *d);
 
 /* Test entry point used by the bridge. */
 int vp_archive_merge_run(const uint8_t *data, size_t size);
