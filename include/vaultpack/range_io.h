@@ -127,6 +127,14 @@ int  vp_cache_pin_acquire(struct vp_section_cache *c,
                           const char *name, vp_cache_pin_t *out_pin);
 int  vp_cache_pin_release(vp_cache_pin_t *pin);
 
+/* Pin tracker advanced operations. */
+int  vp_cache_pin_is_valid(const vp_cache_pin_t *pin);
+const char *vp_cache_pin_name(const vp_cache_pin_t *pin);
+struct vp_section_cache *vp_cache_pin_cache(const vp_cache_pin_t *pin);
+int  vp_cache_pin_renew(vp_cache_pin_t *pin);
+int  vp_cache_pin_swap(vp_cache_pin_t *a, vp_cache_pin_t *b);
+void vp_cache_pin_clear(vp_cache_pin_t *pin);
+
 #ifdef __cplusplus
 }
 #endif

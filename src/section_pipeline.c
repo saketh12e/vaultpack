@@ -139,3 +139,103 @@ void vp_section_pipeline_destroy(vp_section_pipeline_t *p)
     p->inflated_cap = 0;
     p->inflated_len = 0;
 }
+
+/* === Section pipeline advanced operations ===
+ *
+ * The pipeline exposes pre-flight checks for declared sizes, codec
+ * type queries, status transitions, and a reset path that lets the
+ * caller reuse the pipeline handle across multiple sections.
+ */
+
+uint32_t vp_section_pipeline_codec(const vp_section_pipeline_t *p)
+{
+    return p ? p->codec_tag : 0;
+}
+
+size_t vp_section_pipeline_declared_raw(const vp_section_pipeline_t *p)
+{
+    return p ? p->declared_raw_size : 0;
+}
+
+size_t vp_section_pipeline_declared_comp(const vp_section_pipeline_t *p)
+{
+    return p ? p->declared_comp_size : 0;
+}
+
+uint32_t vp_section_pipeline_expected_crc(const vp_section_pipeline_t *p)
+{
+    return p ? p->expected_crc : 0;
+}
+
+int vp_section_pipeline_is_validated(const vp_section_pipeline_t *p)
+{
+    return p && p->crc_validated;
+}
+
+size_t vp_section_pipeline_inflated_len(const vp_section_pipeline_t *p)
+{
+    return p ? p->inflated_len : 0;
+}
+
+vp_section_pipeline_status_t vp_section_pipeline_last_status(const vp_section_pipeline_t *p)
+{
+    return p ? p->last_status : VP_PIPELINE_NEED_INPUT;
+}
+
+const char *vp_section_pipeline_status_str(vp_section_pipeline_status_t st)
+{
+    switch (st) {
+        case VP_PIPELINE_OK:              return "ok";
+        case VP_PIPELINE_NEED_INPUT:      return "need-input";
+        case VP_PIPELINE_TRUNCATED:       return "truncated";
+        case VP_PIPELINE_BAD_CODEC:       return "bad-codec";
+        case VP_PIPELINE_CRC_MISMATCH:    return "crc-mismatch";
+        case VP_PIPELINE_LENGTH_MISMATCH: return "length-mismatch";
+        case VP_PIPELINE_OOM:             return "oom";
+        default:                          return "unknown";
+    }
+}
+
+int vp_section_pipeline_reset(vp_section_pipeline_t *p)
+{
+    if (!p) return VP_ERR_INVALID;
+    free(p->inflated);
+    p->inflated = NULL;
+    p->inflated_cap = 0;
+    p->inflated_len = 0;
+    p->crc_validated = 0;
+    p->last_status = VP_PIPELINE_NEED_INPUT;
+    return VP_OK;
+}
+
+int vp_section_pipeline_set_expected_crc(vp_section_pipeline_t *p, uint32_t crc)
+{
+    if (!p) return VP_ERR_INVALID;
+    p->expected_crc = crc;
+    return VP_OK;
+}
+
+int vp_section_pipeline_set_codec(vp_section_pipeline_t *p, uint32_t codec)
+{
+    if (!p) return VP_ERR_INVALID;
+    p->codec_tag = codec;
+    return VP_OK;
+}
+
+int vp_section_pipeline_check_lengths(const vp_section_pipeline_t *p,
+                                     size_t actual_payload_len)
+{
+    if (!p) return VP_ERR_INVALID;
+    if (p->declared_comp_size != actual_payload_len) return VP_ERR_LENGTH;
+    return VP_OK;
+}
+
+int vp_section_pipeline_compute_crc(const vp_section_pipeline_t *p,
+                                   uint32_t *out_crc)
+{
+    if (!p || !out_crc) return VP_ERR_INVALID;
+    if (!p->inflated) return VP_ERR_INVALID;
+    extern uint32_t vp_crc32_bytes(const uint8_t *data, size_t len);
+    *out_crc = vp_crc32_bytes(p->inflated, p->inflated_len);
+    return VP_OK;
+}

@@ -37,3 +37,49 @@ int vp_cache_pin_release(vp_cache_pin_t *pin)
     pin->name[0] = '\0';
     return rc;
 }
+
+/* === Pin tracker advanced operations ===
+ *
+ * The tracker supports batch pin / unpin for callers that hold many
+ * pins simultaneously, and a token validity check that does not
+ * mutate the underlying pin count.
+ */
+
+int vp_cache_pin_is_valid(const vp_cache_pin_t *pin)
+{
+    return pin && pin->cache && pin->name[0] != '\0';
+}
+
+const char *vp_cache_pin_name(const vp_cache_pin_t *pin)
+{
+    return pin ? pin->name : NULL;
+}
+
+struct vp_section_cache *vp_cache_pin_cache(const vp_cache_pin_t *pin)
+{
+    return pin ? pin->cache : NULL;
+}
+
+int vp_cache_pin_renew(vp_cache_pin_t *pin)
+{
+    if (!pin || !pin->cache || !pin->name[0]) return VP_ERR_INVALID;
+    int rc = vp_section_cache_pin(pin->cache, pin->name);
+    if (rc != VP_OK) return rc;
+    return vp_section_cache_unpin(pin->cache, pin->name);
+}
+
+int vp_cache_pin_swap(vp_cache_pin_t *a, vp_cache_pin_t *b)
+{
+    if (!a || !b) return VP_ERR_INVALID;
+    vp_cache_pin_t tmp = *a;
+    *a = *b;
+    *b = tmp;
+    return VP_OK;
+}
+
+void vp_cache_pin_clear(vp_cache_pin_t *pin)
+{
+    if (!pin) return;
+    pin->cache = NULL;
+    pin->name[0] = '\0';
+}

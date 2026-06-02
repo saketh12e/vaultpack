@@ -63,6 +63,22 @@ int vp_section_pipeline_verify_crc(vp_section_pipeline_t *p);
 
 void vp_section_pipeline_destroy(vp_section_pipeline_t *p);
 
+/* Section pipeline advanced operations. */
+uint32_t vp_section_pipeline_codec(const vp_section_pipeline_t *p);
+size_t vp_section_pipeline_declared_raw(const vp_section_pipeline_t *p);
+size_t vp_section_pipeline_declared_comp(const vp_section_pipeline_t *p);
+uint32_t vp_section_pipeline_expected_crc(const vp_section_pipeline_t *p);
+int vp_section_pipeline_is_validated(const vp_section_pipeline_t *p);
+size_t vp_section_pipeline_inflated_len(const vp_section_pipeline_t *p);
+vp_section_pipeline_status_t vp_section_pipeline_last_status(const vp_section_pipeline_t *p);
+const char *vp_section_pipeline_status_str(vp_section_pipeline_status_t st);
+int vp_section_pipeline_reset(vp_section_pipeline_t *p);
+int vp_section_pipeline_set_expected_crc(vp_section_pipeline_t *p, uint32_t crc);
+int vp_section_pipeline_set_codec(vp_section_pipeline_t *p, uint32_t codec);
+int vp_section_pipeline_check_lengths(const vp_section_pipeline_t *p,
+                                     size_t actual_payload_len);
+int vp_section_pipeline_compute_crc(const vp_section_pipeline_t *p, uint32_t *out_crc);
+
 #ifdef __cplusplus
 }
 #endif
