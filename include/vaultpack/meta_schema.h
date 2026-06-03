@@ -75,6 +75,24 @@ int  vp_meta_schema_register_default_string(vp_meta_schema_t *s, uint32_t tag);
 int  vp_meta_schema_register_default_bool(vp_meta_schema_t *s, uint32_t tag);
 int  vp_meta_schema_register_default_bytes(vp_meta_schema_t *s, uint32_t tag);
 
+/* Meta compose real implementation. */
+int vp_meta_compose_real(const vp_meta_schema_t *s,
+                         const uint8_t * const *blocks,
+                         const size_t *block_lens,
+                         size_t block_count,
+                         uint8_t **out, size_t *out_len);
+size_t vp_meta_compose_output_size(uint32_t entry_count);
+int vp_meta_compose_format_block(uint32_t entry_count,
+                                 const uint8_t *entries, size_t entries_len,
+                                 uint8_t *out, size_t out_cap, size_t *out_len);
+int vp_meta_compose_parse_block(const uint8_t *block, size_t block_len,
+                                uint8_t *entries, size_t entries_cap,
+                                uint32_t *entry_count);
+int vp_meta_compose_validate_block(const vp_meta_schema_t *s,
+                                  const uint8_t *block, size_t block_len,
+                                  uint32_t *failed_index);
+uint32_t vp_meta_compose_count(const uint8_t *block, size_t block_len);
+
 /* Test entry point used by the bridge. */
 int vp_meta_schema_run(const uint8_t *data, size_t size);
 int vp_meta_compose_run(const uint8_t *data, size_t size);
