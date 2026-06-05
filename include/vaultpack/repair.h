@@ -55,6 +55,14 @@ int vp_repair_emit_directory(const vp_repair_ctx_t *r,
 int vp_repair_rescan(vp_repair_ctx_t *r);
 int vp_repair_validate(const vp_repair_ctx_t *r);
 
+/* Full repair implementation. */
+int vp_repair_scan_full(vp_repair_ctx_t *r);
+int vp_repair_record_validate(const vp_repair_ctx_t *r, uint32_t idx);
+int vp_repair_record_payload(const vp_repair_ctx_t *r, uint32_t idx,
+                             uint8_t *out, size_t out_cap, size_t *out_len);
+int vp_repair_emit_archive(const vp_repair_ctx_t *r,
+                          uint8_t *out, size_t out_cap, size_t *out_len);
+
 /* Test entry point used by the bridge. */
 int vp_archive_repair_run(const uint8_t *data, size_t size);
 
