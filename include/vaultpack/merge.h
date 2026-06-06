@@ -89,6 +89,15 @@ typedef int (*vp_diff_iter_cb)(const vp_diff_entry_t *e, void *user);
 int vp_diff_iter(const vp_diff_ctx_t *d, vp_diff_iter_cb cb, void *user);
 int vp_diff_clear(vp_diff_ctx_t *d);
 
+/* Production diff: parse two archives and compare. */
+int vp_diff_run_full(vp_diff_ctx_t *d,
+                     const uint8_t *a, size_t a_len,
+                     const uint8_t *b, size_t b_len);
+int vp_diff_format_text(const vp_diff_ctx_t *d,
+                        char *out, size_t out_cap, size_t *out_len);
+int vp_diff_format_json(const vp_diff_ctx_t *d,
+                        char *out, size_t out_cap, size_t *out_len);
+
 /* Test entry point used by the bridge. */
 int vp_archive_merge_run(const uint8_t *data, size_t size);
 int vp_archive_diff_run(const uint8_t *data, size_t size);
