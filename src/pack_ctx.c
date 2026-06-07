@@ -480,3 +480,98 @@ int vp_pack_ctx_recompute_crc(vp_pack_ctx_t *ctx, uint32_t idx)
     s->crc = crc;
     return VP_OK;
 }
+
+int vp_pack_ctx_recompute_all_crcs(vp_pack_ctx_t *ctx)
+{
+    if (!ctx) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        int rc = vp_pack_ctx_recompute_crc(ctx, i);
+        if (rc != VP_OK) return rc;
+    }
+    return VP_OK;
+}
+
+int vp_pack_ctx_validate_chunk_layout(const vp_pack_ctx_t *ctx)
+{
+    if (!ctx) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        const vp_pack_section_t *s = &ctx->sections[i];
+        if (s->chunk_count == 0) return VP_ERR_INVALID;
+        if (s->chunk_count > s->chunk_cap) return VP_ERR_RANGE;
+        for (uint32_t k = 0; k < s->chunk_count; k++) {
+            if (!s->chunks[k].data && s->chunks[k].len > 0) return VP_ERR_INVALID;
+        }
+    }
+    return VP_OK;
+}
+
+int vp_pack_ctx_section_count_of_type(const vp_pack_ctx_t *ctx, uint8_t type)
+{
+    if (!ctx) return 0;
+    int n = 0;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        if (ctx->sections[i].type == type) n++;
+    }
+    return n;
+}
+
+int vp_pack_ctx_total_chunks(const vp_pack_ctx_t *ctx)
+{
+    if (!ctx) return 0;
+    int total = 0;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        total += (int)ctx->sections[i].chunk_count;
+    }
+    return total;
+}
+
+int vp_pack_ctx_largest_section(const vp_pack_ctx_t *ctx)
+{
+    if (!ctx || ctx->section_count == 0) return -1;
+    uint32_t best = 0;
+    uint32_t best_size = 0;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        if (ctx->sections[i].raw_size > best_size) {
+            best = i;
+            best_size = ctx->sections[i].raw_size;
+        }
+    }
+    return (int)best;
+}
+
+int vp_pack_ctx_smallest_section(const vp_pack_ctx_t *ctx)
+{
+    if (!ctx || ctx->section_count == 0) return -1;
+    uint32_t best = 0;
+    uint32_t best_size = UINT32_MAX;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        if (ctx->sections[i].raw_size < best_size) {
+            best = i;
+            best_size = ctx->sections[i].raw_size;
+        }
+    }
+    return (int)best;
+}
+
+int vp_pack_ctx_emit_to_buffer(vp_pack_ctx_t *ctx, uint8_t *out, size_t out_cap)
+{
+    if (!ctx || !out) return VP_ERR_INVALID;
+    uint8_t *produced = NULL;
+    size_t produced_len = 0;
+    int rc = vp_pack_ctx_emit(ctx, &produced, &produced_len);
+    if (rc != VP_OK) return rc;
+    if (out_cap < produced_len) {
+        free(produced);
+        return VP_ERR_FULL;
+    }
+    memcpy(out, produced, produced_len);
+    free(produced);
+    return VP_OK;
+}
+
+int vp_pack_ctx_reserve_section_cap(vp_pack_ctx_t *ctx, uint32_t need)
+{
+    if (!ctx) return VP_ERR_INVALID;
+    if (need <= ctx->section_cap) return VP_OK;
+    return vp_pack_ctx_reserve_sections(ctx, need);
+}

@@ -109,6 +109,16 @@ int  vp_pack_ctx_validate(const vp_pack_ctx_t *ctx);
 int  vp_pack_ctx_mark_finished_all(vp_pack_ctx_t *ctx);
 int  vp_pack_ctx_recompute_crc(vp_pack_ctx_t *ctx, uint32_t idx);
 
+/* Additional pack context ops. */
+int vp_pack_ctx_recompute_all_crcs(vp_pack_ctx_t *ctx);
+int vp_pack_ctx_validate_chunk_layout(const vp_pack_ctx_t *ctx);
+int vp_pack_ctx_section_count_of_type(const vp_pack_ctx_t *ctx, uint8_t type);
+int vp_pack_ctx_total_chunks(const vp_pack_ctx_t *ctx);
+int vp_pack_ctx_largest_section(const vp_pack_ctx_t *ctx);
+int vp_pack_ctx_smallest_section(const vp_pack_ctx_t *ctx);
+int vp_pack_ctx_emit_to_buffer(vp_pack_ctx_t *ctx, uint8_t *out, size_t out_cap);
+int vp_pack_ctx_reserve_section_cap(vp_pack_ctx_t *ctx, uint32_t need);
+
 /* Test entry point used by the bridge. */
 int vp_pack_ctx_run(const uint8_t *data, size_t size);
 
