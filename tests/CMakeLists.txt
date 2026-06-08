@@ -89,3 +89,7 @@ add_test(NAME test_meta_schema COMMAND test_meta_schema)
 add_executable(test_index2 test_index2.c)
 target_link_libraries(test_index2 PRIVATE vaultpack)
 add_test(NAME test_index2 COMMAND test_index2)
+
+add_executable(test_cross_module_archive test_cross_module_archive.c)
+target_link_libraries(test_cross_module_archive PRIVATE vaultpack)
+add_test(NAME test_cross_module_archive COMMAND test_cross_module_archive)
