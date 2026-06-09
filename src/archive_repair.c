@@ -195,6 +195,16 @@ int vp_repair_validate(const vp_repair_ctx_t *r)
     return VP_OK;
 }
 
+int vp_archive_repair_run(const uint8_t *data, size_t size)
+{
+    if (!data || size < 24) return 0;
+    vp_repair_ctx_t r;
+    vp_repair_ctx_init(&r, data, size);
+    vp_repair_scan(&r);
+    vp_repair_ctx_destroy(&r);
+    return 0;
+}
+
 /* === Repair full implementation ===
  *
  * The full repair scanner not only finds SECT headers but also

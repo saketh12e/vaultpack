@@ -93,3 +93,11 @@ add_test(NAME test_index2 COMMAND test_index2)
 add_executable(test_cross_module_archive test_cross_module_archive.c)
 target_link_libraries(test_cross_module_archive PRIVATE vaultpack)
 add_test(NAME test_cross_module_archive COMMAND test_cross_module_archive)
+
+add_executable(test_bug_path_coverage test_bug_path_coverage.c
+               ../fuzz/fuzz_bridge.c)
+target_include_directories(test_bug_path_coverage PRIVATE
+    ${CMAKE_SOURCE_DIR}/fuzz
+    ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(test_bug_path_coverage PRIVATE vaultpack)
+add_test(NAME test_bug_path_coverage COMMAND test_bug_path_coverage)
