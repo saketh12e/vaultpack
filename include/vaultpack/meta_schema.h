@@ -75,6 +75,18 @@ int  vp_meta_schema_register_default_string(vp_meta_schema_t *s, uint32_t tag);
 int  vp_meta_schema_register_default_bool(vp_meta_schema_t *s, uint32_t tag);
 int  vp_meta_schema_register_default_bytes(vp_meta_schema_t *s, uint32_t tag);
 
+/* Schema lifecycle. */
+int  vp_meta_schema_export(const vp_meta_schema_t *s,
+                           uint8_t *out, size_t out_cap, size_t *out_len);
+int  vp_meta_schema_import(vp_meta_schema_t *s,
+                           const uint8_t *in, size_t in_len);
+int  vp_meta_schema_clone(const vp_meta_schema_t *src, vp_meta_schema_t *dst);
+int  vp_meta_schema_validate_stream(const vp_meta_schema_t *s,
+                                    const uint8_t *in, size_t in_len);
+int  vp_meta_schema_count_by_type(const vp_meta_schema_t *s, vp_meta_type_t type);
+uint32_t vp_meta_schema_max_tag(const vp_meta_schema_t *s);
+int  vp_meta_schema_swap(vp_meta_schema_t *a, vp_meta_schema_t *b);
+
 /* Meta compose real implementation. */
 int vp_meta_compose_real(const vp_meta_schema_t *s,
                          const uint8_t * const *blocks,

@@ -283,3 +283,118 @@ int vp_meta_schema_register_default_bytes(vp_meta_schema_t *s, uint32_t tag)
 {
     return vp_meta_schema_register(s, tag, VP_META_BYTES);
 }
+
+/* === Schema bulk operations and full lifecycle ===
+ *
+ * The schema can be imported from a serialized representation,
+ * exported to a byte stream, and copied between schemas. These
+ * operations support tooling that round-trips schemas across
+ * processes.
+ */
+
+#define VP_META_SCHEMA_MAGIC 0x4D534348u  /* "MSCH" */
+
+int vp_meta_schema_export(const vp_meta_schema_t *s,
+                          uint8_t *out, size_t out_cap, size_t *out_len)
+{
+    if (!s || !out || !out_len) return VP_ERR_INVALID;
+    size_t need = 8 + (size_t)s->count * 5u;
+    if (out_cap < need) return VP_ERR_FULL;
+    uint32_t magic = VP_META_SCHEMA_MAGIC;
+    memcpy(out, &magic, 4);
+    out[4] = (uint8_t)s->count;
+    out[5] = (uint8_t)(s->count >> 8);
+    out[6] = 0;
+    out[7] = 0;
+    size_t pos = 8;
+    for (uint32_t i = 0; i < s->count; i++) {
+        memcpy(out + pos, &s->table[i].tag, 4);
+        out[pos + 4] = (uint8_t)s->table[i].type;
+        pos += 5;
+    }
+    *out_len = pos;
+    return VP_OK;
+}
+
+int vp_meta_schema_import(vp_meta_schema_t *s,
+                          const uint8_t *in, size_t in_len)
+{
+    if (!s || !in || in_len < 8) return VP_ERR_INVALID;
+    uint32_t magic;
+    memcpy(&magic, in, 4);
+    if (magic != VP_META_SCHEMA_MAGIC) return VP_ERR_INVALID;
+    uint32_t count = (uint32_t)in[4] | ((uint32_t)in[5] << 8);
+    if (8 + (size_t)count * 5u > in_len) return VP_ERR_LENGTH;
+    vp_meta_schema_init(s);
+    for (uint32_t i = 0; i < count; i++) {
+        size_t off = 8 + (size_t)i * 5u;
+        uint32_t tag;
+        memcpy(&tag, in + off, 4);
+        vp_meta_type_t type = (vp_meta_type_t)in[off + 4];
+        int rc = vp_meta_schema_register(s, tag, type);
+        if (rc != VP_OK) return rc;
+    }
+    return VP_OK;
+}
+
+int vp_meta_schema_clone(const vp_meta_schema_t *src, vp_meta_schema_t *dst)
+{
+    if (!src || !dst) return VP_ERR_INVALID;
+    vp_meta_schema_init(dst);
+    for (uint32_t i = 0; i < src->count; i++) {
+        int rc = vp_meta_schema_register(dst, src->table[i].tag,
+                                          src->table[i].type);
+        if (rc != VP_OK) return rc;
+    }
+    return VP_OK;
+}
+
+int vp_meta_schema_validate_stream(const vp_meta_schema_t *s,
+                                   const uint8_t *in, size_t in_len)
+{
+    if (!s || !in) return VP_ERR_INVALID;
+    if (in_len < 4) return VP_ERR_TRUNCATED;
+    if (memcmp(in, "META", 4) != 0) return VP_ERR_INVALID;
+    uint32_t key_count = (uint32_t)in[4] | ((uint32_t)in[5] << 8);
+    size_t off = 8;
+    for (uint32_t k = 0; k < key_count; k++) {
+        if (off + 64 > in_len) return VP_ERR_TRUNCATED;
+        uint32_t tag = (uint32_t)in[off]
+                     | ((uint32_t)in[off + 1] << 8)
+                     | ((uint32_t)in[off + 2] << 16)
+                     | ((uint32_t)in[off + 3] << 24);
+        int rc = vp_meta_schema_validate(s, tag, in + off + 4, 60);
+        if (rc != VP_OK) return rc;
+        off += 64;
+    }
+    return VP_OK;
+}
+
+int vp_meta_schema_count_by_type(const vp_meta_schema_t *s, vp_meta_type_t type)
+{
+    if (!s) return 0;
+    int n = 0;
+    for (uint32_t i = 0; i < s->count; i++) {
+        if (s->table[i].type == type) n++;
+    }
+    return n;
+}
+
+uint32_t vp_meta_schema_max_tag(const vp_meta_schema_t *s)
+{
+    if (!s || s->count == 0) return 0;
+    uint32_t best = 0;
+    for (uint32_t i = 0; i < s->count; i++) {
+        if (s->table[i].tag > best) best = s->table[i].tag;
+    }
+    return best;
+}
+
+int vp_meta_schema_swap(vp_meta_schema_t *a, vp_meta_schema_t *b)
+{
+    if (!a || !b) return VP_ERR_INVALID;
+    vp_meta_schema_t tmp = *a;
+    *a = *b;
+    *b = tmp;
+    return VP_OK;
+}
