@@ -222,3 +222,136 @@ int vp_range_io_slice(const vp_range_io_t *r, size_t offset, size_t len,
     vp_range_io_init(out, r->base + offset, len);
     return VP_OK;
 }
+
+/* === Range I/O memory-mapped operations ===
+ *
+ * Higher-level operations that treat the archive blob as a memory
+ * map: region overlap, range intersection, sorted-merging, and
+ * bulk copy.
+ */
+
+int vp_range_io_regions_overlap(const vp_range_io_t *r,
+                                size_t a_off, size_t a_len,
+                                size_t b_off, size_t b_len)
+{
+    if (!r) return 0;
+    if (a_off > r->size || b_off > r->size) return 0;
+    size_t a_end = a_off + a_len;
+    size_t b_end = b_off + b_len;
+    if (a_end > r->size) a_end = r->size;
+    if (b_end > r->size) b_end = r->size;
+    return a_off < b_end && b_off < a_end;
+}
+
+int vp_range_io_intersect(const vp_range_io_t *r,
+                          size_t a_off, size_t a_len,
+                          size_t b_off, size_t b_len,
+                          size_t *out_off, size_t *out_len)
+{
+    if (!r || !out_off || !out_len) return VP_ERR_INVALID;
+    if (a_off > r->size || b_off > r->size) return VP_ERR_RANGE;
+    size_t a_end = a_off + a_len;
+    size_t b_end = b_off + b_len;
+    if (a_end > r->size) a_end = r->size;
+    if (b_end > r->size) b_end = r->size;
+    if (a_off >= b_end || b_off >= a_end) {
+        *out_off = 0;
+        *out_len = 0;
+        return VP_OK;
+    }
+    *out_off = a_off > b_off ? a_off : b_off;
+    size_t end = a_end < b_end ? a_end : b_end;
+    *out_len = end - *out_off;
+    return VP_OK;
+}
+
+uint32_t vp_range_io_adler32(const vp_range_io_t *r,
+                             size_t offset, size_t len)
+{
+    if (!r || offset > r->size) return 0;
+    size_t avail = r->size - offset;
+    size_t n = len < avail ? len : avail;
+    uint32_t a = 1, b = 0;
+    for (size_t i = 0; i < n; i++) {
+        a = (a + r->base[offset + i]) % 65521;
+        b = (b + a) % 65521;
+    }
+    return (b << 16) | a;
+}
+
+int vp_range_io_xor_blocks(const vp_range_io_t *r,
+                           size_t a_off, size_t b_off, size_t len,
+                           uint8_t *out, size_t out_cap, size_t *out_len)
+{
+    if (!r || !out || !out_len) return VP_ERR_INVALID;
+    if (a_off + len > r->size || b_off + len > r->size) return VP_ERR_RANGE;
+    if (out_cap < len) return VP_ERR_FULL;
+    for (size_t i = 0; i < len; i++) {
+        out[i] = r->base[a_off + i] ^ r->base[b_off + i];
+    }
+    *out_len = len;
+    return VP_OK;
+}
+
+int vp_range_io_concat(const vp_range_io_t *a, const vp_range_io_t *b,
+                       uint8_t *out, size_t out_cap, size_t *out_len)
+{
+    if (!a || !b || !out || !out_len) return VP_ERR_INVALID;
+    size_t total = a->size + b->size;
+    if (out_cap < total) return VP_ERR_FULL;
+    memcpy(out, a->base, a->size);
+    memcpy(out + a->size, b->base, b->size);
+    *out_len = total;
+    return VP_OK;
+}
+
+int vp_range_io_substr(const vp_range_io_t *r, size_t offset, size_t len,
+                       const uint8_t *needle, size_t nlen,
+                       uint32_t *count)
+{
+    if (!r || !needle || !count) return VP_ERR_INVALID;
+    if (offset > r->size || nlen == 0) return VP_ERR_INVALID;
+    if (nlen > r->size - offset) { *count = 0; return VP_OK; }
+    uint32_t n = 0;
+    for (size_t i = offset; i + nlen <= r->size; i++) {
+        if (memcmp(r->base + i, needle, nlen) == 0) n++;
+    }
+    *count = n;
+    return VP_OK;
+}
+
+int vp_range_io_equal(const vp_range_io_t *a, const vp_range_io_t *b)
+{
+    if (!a || !b) return 0;
+    if (a->size != b->size) return 0;
+    return memcmp(a->base, b->base, a->size) == 0;
+}
+
+uint64_t vp_range_io_hash64(const vp_range_io_t *r,
+                            size_t offset, size_t len)
+{
+    if (!r || offset > r->size) return 0;
+    size_t avail = r->size - offset;
+    size_t n = len < avail ? len : avail;
+    uint64_t h = 14695981039346656037ULL;
+    for (size_t i = 0; i < n; i++) {
+        h ^= (uint64_t)r->base[offset + i];
+        h *= 1099511628211ULL;
+    }
+    return h;
+}
+
+int vp_range_io_concat_3(const vp_range_io_t *a, const vp_range_io_t *b,
+                          const vp_range_io_t *c,
+                          uint8_t *out, size_t out_cap, size_t *out_len)
+{
+    if (!a || !b || !c || !out || !out_len) return VP_ERR_INVALID;
+    size_t total = a->size + b->size + c->size;
+    if (out_cap < total) return VP_ERR_FULL;
+    size_t pos = 0;
+    memcpy(out + pos, a->base, a->size); pos += a->size;
+    memcpy(out + pos, b->base, b->size); pos += b->size;
+    memcpy(out + pos, c->base, c->size); pos += c->size;
+    *out_len = pos;
+    return VP_OK;
+}

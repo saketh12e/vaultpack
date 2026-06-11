@@ -71,6 +71,28 @@ size_t  vp_range_io_total_size(const vp_range_io_t *r);
 int     vp_range_io_slice(const vp_range_io_t *r, size_t offset, size_t len,
                           vp_range_io_t *out);
 
+/* Range I/O memory-mapped operations. */
+int     vp_range_io_regions_overlap(const vp_range_io_t *r,
+                                    size_t a_off, size_t a_len,
+                                    size_t b_off, size_t b_len);
+int     vp_range_io_intersect(const vp_range_io_t *r,
+                              size_t a_off, size_t a_len,
+                              size_t b_off, size_t b_len,
+                              size_t *out_off, size_t *out_len);
+uint32_t vp_range_io_adler32(const vp_range_io_t *r, size_t offset, size_t len);
+int     vp_range_io_xor_blocks(const vp_range_io_t *r,
+                               size_t a_off, size_t b_off, size_t len,
+                               uint8_t *out, size_t out_cap, size_t *out_len);
+int     vp_range_io_concat(const vp_range_io_t *a, const vp_range_io_t *b,
+                           uint8_t *out, size_t out_cap, size_t *out_len);
+int     vp_range_io_substr(const vp_range_io_t *r, size_t offset, size_t len,
+                           const uint8_t *needle, size_t nlen, uint32_t *count);
+int     vp_range_io_equal(const vp_range_io_t *a, const vp_range_io_t *b);
+uint64_t vp_range_io_hash64(const vp_range_io_t *r, size_t offset, size_t len);
+int     vp_range_io_concat_3(const vp_range_io_t *a, const vp_range_io_t *b,
+                              const vp_range_io_t *c,
+                              uint8_t *out, size_t out_cap, size_t *out_len);
+
 /* Archive view: open an archive via the range reader and read out
  * its directory. The view borrows the section payloads from the
  * range reader. */
