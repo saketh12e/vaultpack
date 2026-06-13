@@ -77,6 +77,23 @@ typedef int (*vp_section_cache_iter_cb)(const char *name,
 int vp_section_cache_iter(const vp_section_cache_t *c,
                           vp_section_cache_iter_cb cb, void *user);
 
+/* Cache management. */
+int vp_section_cache_set_cap(vp_section_cache_t *c, size_t new_cap);
+
+typedef int (*vp_section_cache_walk_cb)(const char *name,
+                                        const uint8_t *payload, size_t len,
+                                        uint32_t pin_count, void *user);
+
+int vp_section_cache_walk(vp_section_cache_t *c,
+                          vp_section_cache_walk_cb cb, void *user);
+int vp_section_cache_promote(vp_section_cache_t *c, const char *name);
+int vp_section_cache_evict_lru(vp_section_cache_t *c);
+int vp_section_cache_evict_named(vp_section_cache_t *c, const char *name);
+int vp_section_cache_swap(vp_section_cache_t *c, const char *a, const char *b);
+int vp_section_cache_rename(vp_section_cache_t *c, const char *old_name, const char *new_name);
+int vp_section_cache_resize_all(vp_section_cache_t *c, size_t new_cap);
+int vp_section_cache_validate(const vp_section_cache_t *c);
+
 /* Test entry point used by the bridge. */
 int vp_section_cache_run(const uint8_t *data, size_t size);
 

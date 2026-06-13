@@ -318,3 +318,110 @@ uint64_t vp_section_cache_hit_clock(const vp_section_cache_t *c)
 {
     return c ? c->clock : 0;
 }
+
+/* === Cache management operations ===
+ *
+ * Bulk operations and quota management. The cache supports a
+ * configurable per-slot payload cap; inserts that exceed the cap
+ * are split across multiple slots.
+ */
+
+int vp_section_cache_set_cap(vp_section_cache_t *c, size_t new_cap)
+{
+    if (!c) return VP_ERR_INVALID;
+    if (new_cap == 0) return VP_ERR_INVALID;
+    if (new_cap > VP_SECTION_CACHE_PAYLOAD_MAX) return VP_ERR_OVERFLOW;
+    for (uint32_t i = 0; i < VP_SECTION_CACHE_SLOTS; i++) {
+        if (c->slots[i].cap > new_cap) c->slots[i].cap = new_cap;
+    }
+    return VP_OK;
+}
+
+int vp_section_cache_walk(vp_section_cache_t *c,
+                          vp_section_cache_walk_cb cb, void *user)
+{
+    if (!c || !cb) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < VP_SECTION_CACHE_SLOTS; i++) {
+        if (c->slots[i].payload) {
+            if (!cb(c->slots[i].name, c->slots[i].payload,
+                     c->slots[i].len, c->slots[i].pin_count, user)) {
+                return VP_ERR_TRUNCATED;
+            }
+        }
+    }
+    return VP_OK;
+}
+
+int vp_section_cache_promote(vp_section_cache_t *c, const char *name)
+{
+    if (!c || !name) return VP_ERR_INVALID;
+    uint32_t idx = vp_section_cache_find_slot(c, name);
+    if (idx == (uint32_t)-1) return VP_ERR_NOTFOUND;
+    c->slots[idx].last_used = ++c->clock;
+    return VP_OK;
+}
+
+int vp_section_cache_evict_lru(vp_section_cache_t *c)
+{
+    if (!c) return VP_ERR_INVALID;
+    uint32_t idx = vp_section_cache_lru_unpinned(c);
+    if (c->slots[idx].payload == NULL) return VP_ERR_NOTFOUND;
+    if (c->slots[idx].pin_count > 0) return VP_ERR_FULL;
+    free(c->slots[idx].payload);
+    c->slots[idx].payload = NULL;
+    c->slots[idx].len = 0;
+    c->slots[idx].name[0] = '\0';
+    c->slots[idx].last_used = 0;
+    return VP_OK;
+}
+
+int vp_section_cache_evict_named(vp_section_cache_t *c, const char *name)
+{
+    if (!c || !name) return VP_ERR_INVALID;
+    return vp_section_cache_remove(c, name);
+}
+
+int vp_section_cache_swap(vp_section_cache_t *c,
+                           const char *a, const char *b)
+{
+    if (!c || !a || !b) return VP_ERR_INVALID;
+    uint32_t ai = vp_section_cache_find_slot(c, a);
+    uint32_t bi = vp_section_cache_find_slot(c, b);
+    if (ai == (uint32_t)-1 || bi == (uint32_t)-1) return VP_ERR_NOTFOUND;
+    vp_section_cache_slot_t tmp = c->slots[ai];
+    c->slots[ai] = c->slots[bi];
+    c->slots[bi] = tmp;
+    return VP_OK;
+}
+
+int vp_section_cache_rename(vp_section_cache_t *c,
+                            const char *old_name, const char *new_name)
+{
+    if (!c || !old_name || !new_name) return VP_ERR_INVALID;
+    if (vp_section_cache_find_slot(c, new_name) != (uint32_t)-1) return VP_ERR_DUPLICATE;
+    uint32_t idx = vp_section_cache_find_slot(c, old_name);
+    if (idx == (uint32_t)-1) return VP_ERR_NOTFOUND;
+    strncpy(c->slots[idx].name, new_name, sizeof(c->slots[idx].name) - 1);
+    c->slots[idx].name[sizeof(c->slots[idx].name) - 1] = '\0';
+    return VP_OK;
+}
+
+int vp_section_cache_resize_all(vp_section_cache_t *c, size_t new_cap)
+{
+    if (!c) return VP_ERR_INVALID;
+    if (new_cap == 0) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < VP_SECTION_CACHE_SLOTS; i++) {
+        if (c->slots[i].cap > new_cap) c->slots[i].cap = new_cap;
+    }
+    return VP_OK;
+}
+
+int vp_section_cache_validate(const vp_section_cache_t *c)
+{
+    if (!c) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < VP_SECTION_CACHE_SLOTS; i++) {
+        if (!c->slots[i].payload && c->slots[i].len != 0) return VP_ERR_INVALID;
+        if (c->slots[i].payload && c->slots[i].cap < c->slots[i].len) return VP_ERR_INVALID;
+    }
+    return VP_OK;
+}
