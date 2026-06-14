@@ -99,8 +99,35 @@ int vp_diff_format_json(const vp_diff_ctx_t *d,
                         char *out, size_t out_cap, size_t *out_len);
 
 /* Test entry point used by the bridge. */
-int vp_archive_merge_run(const uint8_t *data, size_t size);
-int vp_archive_diff_run(const uint8_t *data, size_t size);
+int  vp_archive_merge_run(const uint8_t *data, size_t size);
+int  vp_archive_diff_run(const uint8_t *data, size_t size);
+
+/* Offset remap. */
+typedef struct vp_offset_remap {
+    uint64_t *table;
+    uint32_t  count;
+    uint32_t  cap;
+    uint64_t  base;
+} vp_offset_remap_t;
+
+void vp_offset_remap_init(vp_offset_remap_t *r, uint64_t base);
+void vp_offset_remap_destroy(vp_offset_remap_t *r);
+int  vp_offset_remap_push(vp_offset_remap_t *r, uint64_t offset);
+uint64_t vp_offset_remap_get(const vp_offset_remap_t *r, uint32_t i);
+
+int vp_offset_remap_resolve(const vp_offset_remap_t *r,
+                            uint64_t target, uint64_t *out_source);
+uint32_t vp_offset_remap_count(const vp_offset_remap_t *r);
+uint64_t vp_offset_remap_base(const vp_offset_remap_t *r);
+int vp_offset_remap_reserve(vp_offset_remap_t *r, uint32_t need);
+int vp_offset_remap_clear(vp_offset_remap_t *r);
+int vp_offset_remap_at(const vp_offset_remap_t *r, uint32_t i, uint64_t *out);
+uint64_t vp_offset_remap_sum(const vp_offset_remap_t *r);
+int vp_offset_remap_clone(const vp_offset_remap_t *src,
+                          vp_offset_remap_t *dst);
+int vp_offset_remap_extend(vp_offset_remap_t *r,
+                           const uint64_t *values, uint32_t count);
+int vp_offset_remap_shift_base(vp_offset_remap_t *r, uint64_t new_base);
 
 #ifdef __cplusplus
 }
