@@ -16,6 +16,9 @@
 #include <string.h>
 
 #include "vaultpack/vaultpack.h"
+#include "vaultpack/repair.h"
+#include "vaultpack/merge.h"
+#include "vaultpack/range_io.h"
 
 static int usage(void)
 {
@@ -28,6 +31,10 @@ static int usage(void)
         "  vpack verify  <file.vpack>\n"
         "  vpack pack    <manifest> <out.vpack>\n"
         "  vpack extract <file.vpack> <section>\n"
+        "  vpack repair  <file.vpack>\n"
+        "  vpack merge   <a.vpack> <b.vpack> <out.vpack>\n"
+        "  vpack diff    <a.vpack> <b.vpack>\n"
+        "  vpack inspect <file.vpack>\n"
         "\n");
     return 1;
 }
@@ -243,6 +250,113 @@ static int cmd_extract(const char *archive, const char *section_name)
     return 0;
 }
 
+static int cmd_repair(const char *path)
+{
+    uint8_t *buf;
+    size_t   len;
+    buf = read_file(path, &len);
+    if (!buf) return 1;
+    vp_repair_ctx_t r;
+    vp_repair_ctx_init(&r, buf, len);
+    int rc = vp_repair_scan(&r);
+    if (rc != VP_OK) {
+        fprintf(stderr, "vpack: repair scan failed: %s\n", vp_strerror(rc));
+        vp_repair_ctx_destroy(&r);
+        free(buf);
+        return 1;
+    }
+    printf("repair: %u sections recovered\n", vp_repair_count(&r));
+    printf("raw total: %u bytes\n", vp_repair_total_raw(&r));
+    printf("comp total: %u bytes\n", vp_repair_total_comp(&r));
+    for (uint32_t i = 0; i < r.count; i++) {
+        vp_repair_record_t rec;
+        vp_repair_at(&r, i, &rec);
+        printf("  [%u] offset=0x%llx raw=%u comp=%u crc=0x%08x\n",
+               i, (unsigned long long)rec.offset, rec.raw_size,
+               rec.comp_size, rec.crc);
+    }
+    vp_repair_ctx_destroy(&r);
+    free(buf);
+    return 0;
+}
+
+static int cmd_merge(const char *a_path, const char *b_path, const char *out_path)
+{
+    uint8_t *a_buf, *b_buf;
+    size_t   a_len, b_len;
+    a_buf = read_file(a_path, &a_len);
+    if (!a_buf) return 1;
+    b_buf = read_file(b_path, &b_len);
+    if (!b_buf) { free(a_buf); return 1; }
+
+    vp_merge_ctx_t m;
+    vp_merge_ctx_init(&m, a_buf, a_len, b_buf, b_len);
+    int rc = vp_merge_run(&m);
+    if (rc != VP_OK) {
+        fprintf(stderr, "vpack: merge failed: %s\n", vp_strerror(rc));
+        vp_merge_ctx_destroy(&m);
+        free(a_buf); free(b_buf);
+        return 1;
+    }
+    printf("merged %s + %s -> %u conflicts\n",
+           a_path, b_path, vp_merge_conflict_count(&m));
+    printf("(output to %s not yet implemented; use the merge library API)\n",
+           out_path);
+    vp_merge_ctx_destroy(&m);
+    free(a_buf); free(b_buf);
+    return 0;
+}
+
+static int cmd_diff(const char *a_path, const char *b_path)
+{
+    uint8_t *a_buf, *b_buf;
+    size_t   a_len, b_len;
+    a_buf = read_file(a_path, &a_len);
+    if (!a_buf) return 1;
+    b_buf = read_file(b_path, &b_len);
+    if (!b_buf) { free(a_buf); return 1; }
+
+    vp_diff_ctx_t d;
+    int rc = vp_diff_run_full(&d, a_buf, a_len, b_buf, b_len);
+    if (rc != VP_OK) {
+        fprintf(stderr, "vpack: diff failed: %s\n", vp_strerror(rc));
+        vp_diff_ctx_destroy(&d);
+        free(a_buf); free(b_buf);
+        return 1;
+    }
+    printf("diff: %u added, %u removed, %u changed\n",
+           vp_diff_added_count(&d),
+           vp_diff_removed_count(&d),
+           vp_diff_changed_count(&d));
+    char buf[4096];
+    size_t out_len = 0;
+    if (vp_diff_format_text(&d, buf, sizeof(buf), &out_len) == VP_OK) {
+        fwrite(buf, 1, out_len, stdout);
+    }
+    vp_diff_ctx_destroy(&d);
+    free(a_buf); free(b_buf);
+    return 0;
+}
+
+static int cmd_inspect(const char *path)
+{
+    uint8_t *buf;
+    size_t   len;
+    buf = read_file(path, &len);
+    if (!buf) return 1;
+    vp_range_io_t r;
+    vp_range_io_init(&r, buf, len);
+    printf("file:       %s (%zu bytes)\n", path, len);
+    printf("magic:      %c%c%c%c\n",
+           (char)buf[0], (char)buf[1], (char)buf[2], (char)buf[3]);
+    printf("crc32 of [0,32): 0x%08x\n",
+           (unsigned)vp_range_io_crc32(&r, 0, 32));
+    printf("crc32 of [0,size): 0x%08x\n",
+           (unsigned)vp_range_io_crc32(&r, 0, len));
+    free(buf);
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 2)
@@ -267,6 +381,22 @@ int main(int argc, char **argv)
     if (strcmp(argv[1], "extract") == 0) {
         if (argc != 4) return usage();
         return cmd_extract(argv[2], argv[3]);
+    }
+    if (strcmp(argv[1], "repair") == 0) {
+        if (argc != 3) return usage();
+        return cmd_repair(argv[2]);
+    }
+    if (strcmp(argv[1], "merge") == 0) {
+        if (argc != 5) return usage();
+        return cmd_merge(argv[2], argv[3], argv[4]);
+    }
+    if (strcmp(argv[1], "diff") == 0) {
+        if (argc != 4) return usage();
+        return cmd_diff(argv[2], argv[3]);
+    }
+    if (strcmp(argv[1], "inspect") == 0) {
+        if (argc != 3) return usage();
+        return cmd_inspect(argv[2]);
     }
     if (strcmp(argv[1], "create") == 0) {
         fprintf(stderr, "vpack: 'create' is deprecated; use 'pack'\n");
