@@ -1,11 +1,14 @@
 # VaultPack
 
-VaultPack is a compact binary archive format for embedded and IoT firmware
-payloads. It provides a small, dependency-free C library for reading and
-writing `.vpack` archives, plus a command-line tool (`vpack`) for inspecting
-archives on the host.
+VaultPack is a compact binary archive format and a full archive maintenance
+toolkit. It provides a small, dependency-free C library for reading and
+writing `.vpack` archives, a streaming pack context, a section LRU cache,
+range-based I/O, a section decompression pipeline, archive merge / repair /
+diff / schema tooling, a sorted compact index v2, an interval engine, and a
+command-line tool (`vpack`) for inspecting and maintaining archives on the
+host.
 
-The format is intentionally minimal:
+The core format is intentionally minimal:
 
 - little-endian throughout
 - a fixed 32-byte archive header
@@ -21,11 +24,33 @@ container with named sections, integrity checks, and optional compression.
 
 ```
 vaultpack/
-  include/vaultpack/      public headers (archive, section, metadata, index, extract, error)
-  src/                    library + CLI implementation
-  tests/                  CTest unit tests
-  examples/               create_archive / read_archive
-  fuzz/                   ClusterFuzzLite harnesses, corpus, dictionary, verify scripts
+  include/vaultpack/      public headers
+    archive.h              archive open/close/directory
+    section.h              section header parser + validation
+    metadata.h             metadata block reader + dispatch
+    index.h                flat index + slot insertion
+    extract.h              section extraction
+    error.h                error code table
+    buffer.h               growable output buffer
+    crc32.h                CRC32 + streaming accumulator
+    stream.h               bounded read cursor
+    writer.h               section emitter
+    manifest.h             text manifest parser
+    codec.h                RLE block codec
+    validate.h             archive validation report
+    decompress.h           LZ4X + HC01 block decoders
+    section_pipeline.h     section pipeline (decode + verify + CRC)
+    pack_ctx.h             streaming pack context + chunk assembler + dir emitter + abort
+    range_io.h             bounded range reader + archive view + cache + pin + prefetch
+    merge.h                archive merger + diff engine + offset remap
+    repair.h               repair scanner + full recovery
+    interval.h             reusable interval merge engine
+    meta_schema.h          typed metadata schema + composer
+    index2.h               sorted compact index v2
+  src/                    library + CLI implementation (39 source files)
+  tests/                  CTest unit tests (27 test binaries)
+  examples/               create_archive / read_archive / streaming pack / repair-merge / codec round-trip / range+cache
+  fuzz/                   ClusterFuzzLite harnesses (20 targets), corpus, dictionary, verify scripts
   .clusterfuzzlite/       build.sh, project.yaml, Dockerfile
   CMakeLists.txt
   LICENSE                 MIT
@@ -38,6 +63,45 @@ cmake -S . -B build
 cmake --build build
 ctest --test-dir build --output-on-failure
 ```
+
+## Command-line tool
+
+```
+vpack list     <file.vpack>     list sections in an archive
+vpack info     <file.vpack>     print archive header info
+vpack verify   <file.vpack>     run validation checks
+vpack pack     <manifest> <out> parse a text manifest and emit a .vpack
+vpack extract  <file.vpack> <section>  dump a section's payload to stdout
+vpack repair   <file.vpack>     scan for SECT headers and report recovery
+vpack merge    <a.vpack> <b.vpack> <out.vpack>  report conflicts when merging
+vpack diff     <a.vpack> <b.vpack>  show added/removed/changed sections
+vpack inspect  <file.vpack>     print CRC32 of header and full archive
+```
+
+## Subsystem summary
+
+| Subsystem              | Public headers                                  |
+| ---------------------- | ----------------------------------------------- |
+| Core archive            | archive.h section.h metadata.h index.h extract.h|
+| Writer + manifest       | writer.h manifest.h                              |
+| Stream + buffer + CRC   | stream.h buffer.h crc32.h                        |
+| Validation + codec      | validate.h codec.h                              |
+| Decompression pipeline  | decompress.h section_pipeline.h                 |
+| Streaming pack context  | pack_ctx.h                                      |
+| Range I/O + cache        | range_io.h                                      |
+| Merge / diff / repair   | merge.h repair.h                                |
+| Interval engine         | interval.h                                       |
+| Schema + composer        | meta_schema.h                                   |
+| Index v2                 | index2.h                                         |
+
+## Fuzz targets
+
+20 ClusterFuzzLite harnesses are wired into `.clusterfuzzlite/project.yaml`:
+
+archive_fuzzer section_fuzzer metadata_fuzzer index_fuzzer extract_fuzzer
+stream_fuzzer manifest_fuzzer codec_fuzzer writer_fuzzer validate_fuzzer
+pipeline_fuzzer pack_fuzzer cache_fuzzer merge_fuzzer repair_fuzzer
+schema_fuzzer index2_fuzzer range_fuzzer diff_fuzzer compose_fuzzer
 
 This produces `libvaultpack.a` (or `.so`/`.dylib` depending on platform) and
 the `vpack` CLI in `build/`.
