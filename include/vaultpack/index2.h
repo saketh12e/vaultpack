@@ -56,6 +56,26 @@ int  vp_index2_clone(const vp_index2_t *src, vp_index2_t *dst);
 uint64_t vp_index2_total_size(const vp_index2_t *idx);
 int  vp_index2_validate(const vp_index2_t *idx);
 
+/* Additional lookup operations. */
+int  vp_index2_lower_bound(const vp_index2_t *idx, const char *name);
+int  vp_index2_upper_bound(const vp_index2_t *idx, const char *name);
+
+/* Sort alternatives. */
+void vp_index2_sort_by_offset(vp_index2_t *idx);
+void vp_index2_sort_by_size(vp_index2_t *idx);
+void vp_index2_sort_by_type(vp_index2_t *idx);
+void vp_index2_reverse(vp_index2_t *idx);
+int  vp_index2_upper_bound(const vp_index2_t *idx, const char *name);
+int  vp_index2_range_scan(const vp_index2_t *idx,
+                          const char *lo_name, const char *hi_name,
+                          vp_index2_slot_t *out, uint32_t out_cap);
+int  vp_index2_contains(const vp_index2_t *idx, const char *name);
+int  vp_index2_name_at(const vp_index2_t *idx, uint32_t i, char *out, size_t out_cap);
+int  vp_index2_first(const vp_index2_t *idx, vp_index2_slot_t *out);
+int  vp_index2_last(const vp_index2_t *idx, vp_index2_slot_t *out);
+int  vp_index2_is_sorted(const vp_index2_t *idx);
+uint32_t vp_index2_name_hash(const vp_index2_t *idx, uint32_t i);
+
 /* Test entry point used by the bridge. */
 int vp_index2_run(const uint8_t *data, size_t size);
 

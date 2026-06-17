@@ -58,7 +58,7 @@ static void test_pack_abort_duplicate_detection(void)
     /* Manually push a duplicate through the abort path. After the
      * abort returns VP_ERR_DUPLICATE the section's chunk resources
      * are released; we must NOT call vp_pack_ctx_destroy on the
-     * context because it would double-free the chunks. Instead we
+     * context because it would release the chunks twice. Instead we
      * manually clear the context's bookkeeping so destroy is a no-op
      * for the affected section. */
     assert(vp_pack_abort_check_duplicate(&ctx, "x") == VP_ERR_DUPLICATE);
