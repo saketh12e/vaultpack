@@ -109,3 +109,7 @@ add_test(NAME test_offset_remap COMMAND test_offset_remap)
 add_executable(test_meta_schema_export test_meta_schema_export.c)
 target_link_libraries(test_meta_schema_export PRIVATE vaultpack)
 add_test(NAME test_meta_schema_export COMMAND test_meta_schema_export)
+
+add_executable(test_pack_emit test_pack_emit.c)
+target_link_libraries(test_pack_emit PRIVATE vaultpack)
+add_test(NAME test_pack_emit COMMAND test_pack_emit)
