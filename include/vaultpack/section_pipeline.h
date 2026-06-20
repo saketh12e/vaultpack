@@ -79,6 +79,27 @@ int vp_section_pipeline_check_lengths(const vp_section_pipeline_t *p,
                                      size_t actual_payload_len);
 int vp_section_pipeline_compute_crc(const vp_section_pipeline_t *p, uint32_t *out_crc);
 
+/* Section pipeline lifecycle and orchestration. */
+int vp_section_pipeline_chain(vp_section_pipeline_t *p,
+                              uint32_t codec_tag, size_t raw_size,
+                              size_t comp_size, uint32_t expected_crc);
+int vp_section_pipeline_validate_compatibility(const vp_section_pipeline_t *p,
+                                               uint32_t codec_tag);
+size_t vp_section_pipeline_inflated_cap(const vp_section_pipeline_t *p);
+const uint8_t *vp_section_pipeline_inflated(const vp_section_pipeline_t *p);
+vp_section_pipeline_status_t vp_section_pipeline_translate(int rc);
+int vp_section_pipeline_run_multi(vp_section_pipeline_t *p,
+                                  const uint8_t *payload, size_t payload_len,
+                                  uint8_t **out, size_t *out_len,
+                                  int *out_crc_valid);
+int vp_section_pipeline_reserve_inflated(vp_section_pipeline_t *p, size_t cap);
+int vp_section_pipeline_swap(vp_section_pipeline_t *a,
+                             vp_section_pipeline_t *b);
+int vp_section_pipeline_clone(const vp_section_pipeline_t *src,
+                              vp_section_pipeline_t *dst);
+int vp_section_pipeline_validate_handle(const vp_section_pipeline_t *p);
+uint32_t vp_section_pipeline_metrics_count(const vp_section_pipeline_t *p);
+
 #ifdef __cplusplus
 }
 #endif
