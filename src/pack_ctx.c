@@ -575,3 +575,204 @@ int vp_pack_ctx_reserve_section_cap(vp_pack_ctx_t *ctx, uint32_t need)
     if (need <= ctx->section_cap) return VP_OK;
     return vp_pack_ctx_reserve_sections(ctx, need);
 }
+
+/* === Pack context emission with explicit index ===
+ *
+ * The high-level emit() function picks a default layout. This
+ * alternative entry point lets the caller pass an explicit
+ * section_offset_table that maps section names to payload offsets
+ * in the output buffer. Callers building larger archives that
+ * use index v2 or a custom section ordering can drive emit with
+ * their own table.
+ */
+
+int vp_pack_ctx_emit_with_table(vp_pack_ctx_t *ctx,
+                                const uint64_t *section_offsets,
+                                uint32_t section_count,
+                                uint8_t **out, size_t *out_len)
+{
+    if (!ctx || !out || !out_len) return VP_ERR_INVALID;
+    if (section_count != ctx->section_count) return VP_ERR_LENGTH;
+
+    size_t total = 32;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        total += 24 + ctx->sections[i].raw_size;
+    }
+    total += (size_t)ctx->section_count * 58u;
+
+    uint8_t *buf = (uint8_t *)malloc(total);
+    if (!buf) return VP_ERR_NOMEM;
+
+    memcpy(buf, "VPAK", 4);
+    buf[4] = 1; buf[5] = 0; buf[6] = 0; buf[7] = 0;
+    buf[8] = (uint8_t)ctx->section_count;
+    buf[9] = (uint8_t)(ctx->section_count >> 8);
+    buf[10] = 0; buf[11] = 0;
+    /* dir_offset patched at end */
+    size_t pos = 32;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        vp_pack_section_t *s = &ctx->sections[i];
+        memcpy(buf + pos, "SECT", 4);
+        buf[pos + 4] = s->type;
+        buf[pos + 5] = 0; buf[pos + 6] = 0; buf[pos + 7] = 0;
+        uint32_t raw_size = s->raw_size;
+        buf[pos + 8] = (uint8_t)raw_size;
+        buf[pos + 9] = (uint8_t)(raw_size >> 8);
+        buf[pos + 10] = (uint8_t)(raw_size >> 16);
+        buf[pos + 11] = (uint8_t)(raw_size >> 24);
+        uint32_t comp_size = s->raw_size;
+        buf[pos + 12] = (uint8_t)comp_size;
+        buf[pos + 13] = (uint8_t)(comp_size >> 8);
+        buf[pos + 14] = (uint8_t)(comp_size >> 16);
+        buf[pos + 15] = (uint8_t)(comp_size >> 24);
+        uint32_t crc = s->crc;
+        buf[pos + 16] = (uint8_t)crc;
+        buf[pos + 17] = (uint8_t)(crc >> 8);
+        buf[pos + 18] = (uint8_t)(crc >> 16);
+        buf[pos + 19] = (uint8_t)(crc >> 24);
+        uint32_t flags = s->flags;
+        buf[pos + 20] = (uint8_t)flags;
+        buf[pos + 21] = (uint8_t)(flags >> 8);
+        buf[pos + 22] = (uint8_t)(flags >> 16);
+        buf[pos + 23] = (uint8_t)(flags >> 24);
+        pos += 24;
+        for (uint32_t k = 0; k < s->chunk_count; k++) {
+            memcpy(buf + pos, s->chunks[k].data, s->chunks[k].len);
+            pos += s->chunks[k].len;
+        }
+    }
+    uint32_t dir_off = (uint32_t)pos;
+    buf[12] = (uint8_t)dir_off;
+    buf[13] = (uint8_t)(dir_off >> 8);
+    buf[14] = (uint8_t)(dir_off >> 16);
+    buf[15] = (uint8_t)(dir_off >> 24);
+    buf[16] = 0; buf[17] = 0; buf[18] = 0; buf[19] = 0;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        vp_pack_section_t *s = &ctx->sections[i];
+        memset(buf + pos, 0, 58);
+        size_t sn = strlen(s->name);
+        if (sn > 31) sn = 31;
+        memcpy(buf + pos, s->name, sn);
+        uint64_t off = section_offsets ? section_offsets[i] : 0;
+        buf[pos + 32] = (uint8_t)off;
+        buf[pos + 33] = (uint8_t)(off >> 8);
+        buf[pos + 34] = (uint8_t)(off >> 16);
+        buf[pos + 35] = (uint8_t)(off >> 24);
+        buf[pos + 36] = (uint8_t)(off >> 32);
+        buf[pos + 37] = (uint8_t)(off >> 40);
+        buf[pos + 38] = (uint8_t)(off >> 48);
+        buf[pos + 39] = (uint8_t)(off >> 56);
+        buf[pos + 40] = (uint8_t)s->raw_size;
+        buf[pos + 41] = (uint8_t)(s->raw_size >> 8);
+        buf[pos + 42] = (uint8_t)(s->raw_size >> 16);
+        buf[pos + 43] = (uint8_t)(s->raw_size >> 24);
+        buf[pos + 46] = s->type;
+        pos += 58;
+    }
+    *out = buf;
+    *out_len = pos;
+    return VP_OK;
+}
+
+int vp_pack_ctx_section_offset(const vp_pack_ctx_t *ctx, uint32_t idx,
+                              uint64_t *out_off)
+{
+    if (!ctx || !out_off || idx >= ctx->section_count) return VP_ERR_RANGE;
+    /* Section offset = 32 (header) + sum of preceding section sizes. */
+    uint64_t off = 32;
+    for (uint32_t i = 0; i < idx; i++) {
+        off += 24 + ctx->sections[i].raw_size;
+    }
+    *out_off = off;
+    return VP_OK;
+}
+
+int vp_pack_ctx_build_offset_table(const vp_pack_ctx_t *ctx,
+                                   uint64_t *out_table)
+{
+    if (!ctx || !out_table) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        int rc = vp_pack_ctx_section_offset(ctx, i, &out_table[i]);
+        if (rc != VP_OK) return rc;
+    }
+    return VP_OK;
+}
+
+int vp_pack_ctx_emit_index_v2(const vp_pack_ctx_t *ctx,
+                              uint8_t *out, size_t out_cap, size_t *out_len)
+{
+    if (!ctx || !out || !out_len) return VP_ERR_INVALID;
+    size_t need = (size_t)ctx->section_count * sizeof(uint64_t);
+    if (out_cap < need) return VP_ERR_FULL;
+    return vp_pack_ctx_build_offset_table(ctx, (uint64_t *)out);
+}
+
+int vp_pack_ctx_total_capacity(const vp_pack_ctx_t *ctx)
+{
+    if (!ctx) return 0;
+    int total = 0;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        total += (int)ctx->sections[i].chunk_cap;
+    }
+    return total;
+}
+
+int vp_pack_ctx_chunk_capacity_used(const vp_pack_ctx_t *ctx)
+{
+    if (!ctx) return 0;
+    int total = 0;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        total += (int)ctx->sections[i].chunk_count;
+    }
+    return total;
+}
+
+int vp_pack_ctx_section_flags_get(const vp_pack_ctx_t *ctx, uint32_t idx)
+{
+    if (!ctx || idx >= ctx->section_count) return -1;
+    return (int)ctx->sections[idx].flags;
+}
+
+int vp_pack_ctx_section_offset_v(const vp_pack_ctx_t *ctx, uint32_t idx)
+{
+    if (!ctx || idx >= ctx->section_count) return -1;
+    return (int)idx;
+}
+
+int vp_pack_ctx_swap_sections(vp_pack_ctx_t *ctx, uint32_t a, uint32_t b)
+{
+    if (!ctx || a >= ctx->section_count || b >= ctx->section_count) return VP_ERR_RANGE;
+    vp_pack_section_t tmp = ctx->sections[a];
+    ctx->sections[a] = ctx->sections[b];
+    ctx->sections[b] = tmp;
+    return VP_OK;
+}
+
+int vp_pack_ctx_remove_at(vp_pack_ctx_t *ctx, uint32_t idx)
+{
+    if (!ctx || idx >= ctx->section_count) return VP_ERR_RANGE;
+    vp_pack_section_t *s = &ctx->sections[idx];
+    for (uint32_t k = 0; k < s->chunk_count; k++) free(s->chunks[k].data);
+    free(s->chunks);
+    memmove(&ctx->sections[idx], &ctx->sections[idx + 1],
+            (ctx->section_count - idx - 1) * sizeof(vp_pack_section_t));
+    ctx->section_count--;
+    if (ctx->current >= 0 && (uint32_t)ctx->current >= ctx->section_count) {
+        ctx->current = -1;
+    }
+    return VP_OK;
+}
+
+int vp_pack_ctx_clear_all(vp_pack_ctx_t *ctx)
+{
+    if (!ctx) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < ctx->section_count; i++) {
+        vp_pack_section_t *s = &ctx->sections[i];
+        for (uint32_t k = 0; k < s->chunk_count; k++) free(s->chunks[k].data);
+        free(s->chunks);
+    }
+    ctx->section_count = 0;
+    ctx->current = -1;
+    ctx->section_data_offset = 32;
+    return VP_OK;
+}

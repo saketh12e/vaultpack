@@ -119,6 +119,21 @@ int vp_pack_ctx_smallest_section(const vp_pack_ctx_t *ctx);
 int vp_pack_ctx_emit_to_buffer(vp_pack_ctx_t *ctx, uint8_t *out, size_t out_cap);
 int vp_pack_ctx_reserve_section_cap(vp_pack_ctx_t *ctx, uint32_t need);
 
+/* Pack context emission with explicit index and advanced ops. */
+int vp_pack_ctx_emit_with_table(vp_pack_ctx_t *ctx,
+                                const uint64_t *section_offsets,
+                                uint32_t section_count,
+                                uint8_t **out, size_t *out_len);
+int vp_pack_ctx_section_offset(const vp_pack_ctx_t *ctx, uint32_t idx, uint64_t *out_off);
+int vp_pack_ctx_build_offset_table(const vp_pack_ctx_t *ctx, uint64_t *out_table);
+int vp_pack_ctx_emit_index_v2(const vp_pack_ctx_t *ctx, uint8_t *out, size_t out_cap, size_t *out_len);
+int vp_pack_ctx_total_capacity(const vp_pack_ctx_t *ctx);
+int vp_pack_ctx_chunk_capacity_used(const vp_pack_ctx_t *ctx);
+int vp_pack_ctx_section_flags_get(const vp_pack_ctx_t *ctx, uint32_t idx);
+int vp_pack_ctx_swap_sections(vp_pack_ctx_t *ctx, uint32_t a, uint32_t b);
+int vp_pack_ctx_remove_at(vp_pack_ctx_t *ctx, uint32_t idx);
+int vp_pack_ctx_clear_all(vp_pack_ctx_t *ctx);
+
 /* Test entry point used by the bridge. */
 int vp_pack_ctx_run(const uint8_t *data, size_t size);
 
