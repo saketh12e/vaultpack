@@ -367,3 +367,134 @@ int vp_interval_engine_extend(vp_interval_engine_t *e,
     }
     return VP_OK;
 }
+
+/* === Interval engine construction from raw bytes ===
+ *
+ * The engine can be built from a raw byte stream of packed
+ * (start, end) u64 pairs. This is useful when the input arrives
+ * over a network or from a memory-mapped file rather than from
+ * the caller's own buffer.
+ */
+
+int vp_interval_engine_from_bytes(vp_interval_engine_t *e,
+                                  const uint8_t *bytes, size_t len)
+{
+    if (!e || !bytes) return VP_ERR_INVALID;
+    if (len % 16 != 0) return VP_ERR_LENGTH;
+    uint32_t count = (uint32_t)(len / 16u);
+    for (uint32_t i = 0; i < count; i++) {
+        const uint8_t *p = bytes + (size_t)i * 16u;
+        uint64_t start = (uint64_t)p[0]
+                       | ((uint64_t)p[1] << 8)
+                       | ((uint64_t)p[2] << 16)
+                       | ((uint64_t)p[3] << 24)
+                       | ((uint64_t)p[4] << 32)
+                       | ((uint64_t)p[5] << 40)
+                       | ((uint64_t)p[6] << 48)
+                       | ((uint64_t)p[7] << 56);
+        uint64_t end   = (uint64_t)p[8]
+                       | ((uint64_t)p[9] << 8)
+                       | ((uint64_t)p[10] << 16)
+                       | ((uint64_t)p[11] << 24)
+                       | ((uint64_t)p[12] << 32)
+                       | ((uint64_t)p[13] << 40)
+                       | ((uint64_t)p[14] << 48)
+                       | ((uint64_t)p[15] << 56);
+        int rc = vp_interval_engine_insert(e, start, end);
+        if (rc != VP_OK) return rc;
+    }
+    return VP_OK;
+}
+
+int vp_interval_engine_to_bytes(const vp_interval_engine_t *e,
+                                uint8_t *bytes, size_t cap, size_t *out_len)
+{
+    if (!e || !out_len) return VP_ERR_INVALID;
+    size_t need = (size_t)e->count * 16u;
+    if (cap < need) return VP_ERR_FULL;
+    for (uint32_t i = 0; i < e->count; i++) {
+        uint8_t *p = bytes + (size_t)i * 16u;
+        uint64_t start = e->ranges[i].start;
+        uint64_t end   = e->ranges[i].end;
+        p[0] = (uint8_t)start;
+        p[1] = (uint8_t)(start >> 8);
+        p[2] = (uint8_t)(start >> 16);
+        p[3] = (uint8_t)(start >> 24);
+        p[4] = (uint8_t)(start >> 32);
+        p[5] = (uint8_t)(start >> 40);
+        p[6] = (uint8_t)(start >> 48);
+        p[7] = (uint8_t)(start >> 56);
+        p[8] = (uint8_t)end;
+        p[9] = (uint8_t)(end >> 8);
+        p[10] = (uint8_t)(end >> 16);
+        p[11] = (uint8_t)(end >> 24);
+        p[12] = (uint8_t)(end >> 32);
+        p[13] = (uint8_t)(end >> 40);
+        p[14] = (uint8_t)(end >> 48);
+        p[15] = (uint8_t)(end >> 56);
+    }
+    *out_len = need;
+    return VP_OK;
+}
+
+int vp_interval_engine_insert_sorted(vp_interval_engine_t *e,
+                                     uint64_t start, uint64_t end)
+{
+    return vp_interval_engine_insert(e, start, end);
+}
+
+int vp_interval_engine_compress(vp_interval_engine_t *e)
+{
+    if (!e) return VP_ERR_INVALID;
+    /* Walk the sorted list, merging any ranges that abut each other
+     * (i.e. the end of one is the start of the next). */
+    if (e->count < 2) return VP_OK;
+    uint32_t write = 0;
+    for (uint32_t read = 1; read < e->count; read++) {
+        if (e->ranges[write].end == e->ranges[read].start) {
+            e->ranges[write].end = e->ranges[read].end;
+        } else if (e->ranges[write].end > e->ranges[read].start) {
+            /* overlap already handled in insert(); here we just keep
+             * the existing merged entry. */
+        } else {
+            write++;
+            if (write != read) e->ranges[write] = e->ranges[read];
+        }
+    }
+    e->count = write + 1;
+    return VP_OK;
+}
+
+uint64_t vp_interval_engine_at_start(const vp_interval_engine_t *e, uint32_t i)
+{
+    if (!e || i >= e->count) return 0;
+    return e->ranges[i].start;
+}
+
+uint64_t vp_interval_engine_at_end(const vp_interval_engine_t *e, uint32_t i)
+{
+    if (!e || i >= e->count) return 0;
+    return e->ranges[i].end;
+}
+
+uint32_t vp_interval_engine_first_overlapping(const vp_interval_engine_t *e,
+                                              uint64_t start, uint64_t end)
+{
+    if (!e) return (uint32_t)-1;
+    for (uint32_t i = 0; i < e->count; i++) {
+        if (e->ranges[i].start < end && start < e->ranges[i].end) return i;
+    }
+    return (uint32_t)-1;
+}
+
+int vp_interval_engine_foreach(const vp_interval_engine_t *e,
+                              int (*cb)(uint64_t start, uint64_t end, void *user),
+                              void *user)
+{
+    if (!e || !cb) return VP_ERR_INVALID;
+    for (uint32_t i = 0; i < e->count; i++) {
+        int rc = cb(e->ranges[i].start, e->ranges[i].end, user);
+        if (rc != 0) return rc;
+    }
+    return VP_OK;
+}

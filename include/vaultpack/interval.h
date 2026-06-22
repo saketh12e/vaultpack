@@ -69,6 +69,22 @@ int  vp_interval_engine_clone(const vp_interval_engine_t *src,
 int  vp_interval_engine_extend(vp_interval_engine_t *e,
                               const vp_interval_t *ranges, uint32_t count);
 
+/* Interval engine construction from raw bytes. */
+int vp_interval_engine_from_bytes(vp_interval_engine_t *e,
+                                  const uint8_t *bytes, size_t len);
+int vp_interval_engine_to_bytes(const vp_interval_engine_t *e,
+                                uint8_t *bytes, size_t cap, size_t *out_len);
+int vp_interval_engine_insert_sorted(vp_interval_engine_t *e,
+                                     uint64_t start, uint64_t end);
+int vp_interval_engine_compress(vp_interval_engine_t *e);
+uint64_t vp_interval_engine_at_start(const vp_interval_engine_t *e, uint32_t i);
+uint64_t vp_interval_engine_at_end(const vp_interval_engine_t *e, uint32_t i);
+uint32_t vp_interval_engine_first_overlapping(const vp_interval_engine_t *e,
+                                              uint64_t start, uint64_t end);
+int vp_interval_engine_foreach(const vp_interval_engine_t *e,
+                              int (*cb)(uint64_t start, uint64_t end, void *user),
+                              void *user);
+
 /* Test entry point used by the bridge. */
 int vp_interval_engine_run(const uint8_t *data, size_t size);
 
