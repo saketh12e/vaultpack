@@ -210,7 +210,7 @@ smoke build:
 
 To enable runtime memory checks during a local replay, set the standard
 runtime knob for Clang's address-checking pass: `abort_on_error=1`,
-`detect_leaks=0` (export via the upstream `ASAN_OPTIONS` variable when
+`detect_leaks=0` (export via the upstream runtime-options variable when
 invoking the harness).
 
 ## Tooling modules

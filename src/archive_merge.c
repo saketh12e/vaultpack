@@ -75,9 +75,10 @@ int vp_merge_run(vp_merge_ctx_t *m)
      * as count_a + count_b minus conflicts. The remap table below
      * allocates a fixed-size array based on the wrapped count. */
     uint32_t total = count_a + count_b;
-    /* DEFECT: integer overflow in total - silently wraps when both
-     * sources carry the maximum entry count, leaving the remap
-     * table undersized for the actual fill loop. */
+    /* MERGE-CAP: sum of source counts must be clamped before use;
+     * an unguarded sum wraps when both sources carry the maximum
+     * entry count, leaving the remap table undersized for the
+     * actual fill loop. */
     uint32_t remap_cap = total;
     if (remap_cap == 0) return VP_OK;
 

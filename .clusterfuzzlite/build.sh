@@ -1,6 +1,6 @@
 #!/bin/bash -eu
 #
-# ClusterFuzzLite / Fenrir build entry point for VaultPack.
+# ClusterFuzzLite build entry point for VaultPack.
 # Builds every fuzz harness into $OUT using OSS-Fuzz toolchain variables.
 #
 

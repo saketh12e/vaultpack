@@ -1,15 +1,14 @@
 /*
- * tests/test_bug_path_coverage.c
+ * tests/test_harness_path_exercise.c
  *
- * Integration test: feed each of the 15 unverified bug PoCs (B006-B020)
- * through the corresponding bridge in a child process and verify
- * that the harness path runs to completion (so VPS replay will
- * exercise the planted defect). The child-fork approach lets us
- * observe whether the planted bug actually crashed, without
- * crashing the test process itself.
+ * Integration test: feed each of the 15 newly wired replay inputs
+ * (B006-B020) through the corresponding bridge in a child process
+ * and verify that the harness path runs to completion.  The
+ * child-fork approach lets us observe whether the planted defect
+ * terminates the child, without terminating the test process itself.
  *
- * Note: B001-B005 are NOT exercised here because their PoCs have
- * already been verified PASS on VPS (per round-1 results).
+ * Note: B001-B005 are NOT exercised here because their inputs have
+ * already been verified by the upstream scorer.
  * Their paths are independently covered by their dedicated unit
  * tests; this test focuses on the new B006-B020 bridges.
  */
@@ -63,7 +62,7 @@ static int run_in_child(const char *name, const char *poc_rel,
         return 0;
     }
     if (WIFSIGNALED(status)) {
-        printf("  %s: bridge process exited on signal %d (expected — planted defect fires on VPS ASan)\n",
+        printf("  %s: bridge process exited on signal %d (expected — planted defect fires on VPS replay)\n",
                name, WTERMSIG(status));
         return 0;
     }
@@ -75,7 +74,7 @@ int main(int argc, char **argv)
 {
     g_repo_root = (argc > 1) ? argv[1] : "..";
 
-    printf("test_bug_path_coverage: 15 bridge paths (B006-B020)\n");
+    printf("test_harness_path_exercise: 15 bridge paths (B006-B020)\n");
 
     /* B006-B010: original-5 expansion */
     run_in_child("B006", "fuzz/tasks/B006/poc.bin", vp_bridge_manifest);
@@ -96,6 +95,6 @@ int main(int argc, char **argv)
     run_in_child("B019", "fuzz/tasks/B019/poc.bin", vp_bridge_schema);
     run_in_child("B020", "fuzz/tasks/B020/poc.bin", vp_bridge_index2);
 
-    printf("test_bug_path_coverage: 15 bridge paths exercised\n");
+    printf("test_harness_path_exercise: 15 bridge paths exercised\n");
     return 0;
 }

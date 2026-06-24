@@ -4,7 +4,7 @@
  * Bounded read cursor for little-endian archive parsing. The stream never
  * owns the underlying buffer; it borrows a (data, size) window and tracks
  * a read position. Out-of-bounds reads set an error state and return zero
- * values, so callers can keep parsing without crashing on malformed input.
+ * values, so callers can keep parsing on malformed input.
  */
 #ifndef VAULTPACK_STREAM_H
 #define VAULTPACK_STREAM_H

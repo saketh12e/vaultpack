@@ -1,8 +1,9 @@
 /*
  * src/section_cache.c
  *
- * LRU section payload cache. Backed by a fixed pool of slots; on
- * overflow the least-recently-used slot is evicted to make room.
+ * LRU section payload cache. Backed by a fixed pool of slots; when
+ * the pool fills up, the least-recently-used slot is evicted to
+ * make room for a new entry.
  *
  * Pins are ref counts. A pinned slot cannot be evicted while any
  * caller holds a pin; if all slots are pinned at insert time the

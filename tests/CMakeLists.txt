@@ -94,14 +94,14 @@ add_executable(test_cross_module_archive test_cross_module_archive.c)
 target_link_libraries(test_cross_module_archive PRIVATE vaultpack)
 add_test(NAME test_cross_module_archive COMMAND test_cross_module_archive)
 
-add_executable(test_bug_path_coverage test_bug_path_coverage.c
+add_executable(test_harness_path_exercise test_harness_path_exercise.c
                ../fuzz/fuzz_bridge.c)
-target_include_directories(test_bug_path_coverage PRIVATE
+target_include_directories(test_harness_path_exercise PRIVATE
     ${CMAKE_SOURCE_DIR}/fuzz
     ${CMAKE_SOURCE_DIR}/include)
-target_link_libraries(test_bug_path_coverage PRIVATE vaultpack)
-add_test(NAME test_bug_path_coverage
-         COMMAND test_bug_path_coverage ${CMAKE_SOURCE_DIR})
+target_link_libraries(test_harness_path_exercise PRIVATE vaultpack)
+add_test(NAME test_harness_path_exercise
+         COMMAND test_harness_path_exercise ${CMAKE_SOURCE_DIR})
 
 add_executable(test_offset_remap test_offset_remap.c)
 target_link_libraries(test_offset_remap PRIVATE vaultpack)

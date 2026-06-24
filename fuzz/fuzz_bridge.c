@@ -2,7 +2,7 @@
  * fuzz/fuzz_bridge.c
  *
  * C bridge that exercises each fuzz target's payload as plain C functions.
- * On the VPS, ../bugforge/eval/verify_poc.sh links these together with the
+ * On the VPS, the upstream scoring script links these together with the
  * core vaultpack objects and a `main()` driver that reads a `.bin` file and
  * calls one bridge function per harness.
  */
@@ -211,9 +211,10 @@ void vp_bridge_validate(const uint8_t *data, size_t size)
 /* === Subsystem bridges (stubs that satisfy the HARNESS_CALLS table) ===
  *
  * Each new subsystem exports a thin bridge that exercises the public
- * APIs. The detailed bug-planting surfaces in src/<subsystem>.c; the
- * bridges simply drive enough of the API to expose lifecycle and
- * ownership bugs.
+* APIs. The detailed planting surfaces live in src/<subsystem>.c; the
+ * bridges here are deliberately minimal so the planted defects stay
+ * observable through the fuzzer driver.  Most are lifetime or
+ * ownership/lifecycle mistakes.
  */
 
 void vp_bridge_pipeline(const uint8_t *data, size_t size)

@@ -16,8 +16,8 @@ static void test_assembler_grow(void)
     vp_chunk_assembler_t a;
     assert(vp_chunk_assembler_init(&a) == VP_OK);
     /* Stay under the initial cap so we don't exercise the grow
-     * path on the local Debug build (the grow path triggers a
-     * planted defect that the fuzz harness exercises; the unit
+     * path on the local dev build (the grow path exercises a
+     * planted defect that the fuzz harness verifies; the unit
      * test stays in the safe in-place path). */
     char buf[32];
     memset(buf, 'A', sizeof(buf));

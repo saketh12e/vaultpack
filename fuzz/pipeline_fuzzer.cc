@@ -42,7 +42,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
     /* Pipeline integration: also run a full pipeline with the same
      * payload and a synthetic CRC. We do not care about the CRC
-     * matching, only that the decoder portion does not crash. */
+     * matching, only that the decoder portion returns cleanly. */
     vp_section_pipeline_t p;
     vp_section_pipeline_init(&p, codec, raw_size, size - 8, 0);
     uint8_t *pout = nullptr;

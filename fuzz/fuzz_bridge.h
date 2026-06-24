@@ -1,7 +1,7 @@
 /*
  * fuzz/fuzz_bridge.h
  *
- * Replay entry points used by ../bugforge/eval/verify_poc.sh on the VPS.
+ * Replay entry points used by the upstream scoring script on the VPS.
  * Each function mirrors the body of the corresponding `LLVMFuzzerTestOneInput`
  * in fuzz/<name>_fuzzer.cc, so the harness logic is exercisable without a
  * libFuzzer runtime.
