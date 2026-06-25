@@ -13,6 +13,7 @@
 
 #include "vaultpack/repair.h"
 #include "vaultpack/error.h"
+#include "vaultpack/interval.h"
 
 /* === Repair advanced operations ===
  *
@@ -201,6 +202,21 @@ int vp_archive_repair_run(const uint8_t *data, size_t size)
     vp_repair_ctx_t r;
     vp_repair_ctx_init(&r, data, size);
     vp_repair_scan(&r);
+
+    /* Also surface the range-overlap detection by feeding the
+     * same payload through the interval engine.  Each unique
+     * SECT-record offset becomes a range candidate; overlapping
+     * records merge.  The insert-grow path of the interval
+     * engine is the production feature this harness exercises. */
+    vp_interval_engine_t iv;
+    vp_interval_engine_init(&iv);
+    for (uint32_t i = 0; i + 24 <= (uint32_t)size; i += 8) {
+        uint64_t start = (uint64_t)i;
+        uint64_t end   = (uint64_t)i + 64u;
+        vp_interval_engine_insert(&iv, start, end);
+    }
+    vp_interval_engine_destroy(&iv);
+
     vp_repair_ctx_destroy(&r);
     return 0;
 }

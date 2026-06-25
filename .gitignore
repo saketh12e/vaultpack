@@ -11,8 +11,20 @@
 fuzz/.verify-build/
 fuzz/inputs/
 
-# Submitted PoC bytes — keep only the description.txt and agent memory
+# Submitted PoC bytes — kept locally for VPS replay only
 fuzz/tasks/**/poc.bin
+
+# Submitted task descriptions — kept locally for the VPS task upload only;
+# the platform UI is the authoritative copy, not the repo.
+fuzz/tasks/**/description.txt
+
+# Local eval / scoring harness — consumed by the upstream scoring script,
+# not part of the fuzzable repo. Keep descriptions and PoCs local.
+eval/
+
+# Local replay helper — runs an input file against the matching harness,
+# not part of the fuzzable repo.
+fuzz/verify_poc.sh
 
 # Agent memory — never push
 .agent-memory/

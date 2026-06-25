@@ -1,1 +1,0 @@
-A heap-buffer-overflow write occurs in `vp_interval_engine_insert()` in `src/interval_engine.c` when a single inserted range produces a large number of metadata-derived extras. The growth cap is computed from the existing count plus one, but the metadata-derived extras are appended without an additional size check, so the later memmove writes past the grown allocation.

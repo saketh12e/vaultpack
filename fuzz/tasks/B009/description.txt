@@ -1,1 +1,0 @@
-An out-of-bounds write occurs in `vp_validate_collect_intervals()` in `src/validate.c` when the archive contains directory entries with non-zero `meta_count`. The interval collector allocates one slot per directory entry but writes one slot per directory entry times `(1 + meta_count)`. The excess writes corrupt the heap beyond the allocation.

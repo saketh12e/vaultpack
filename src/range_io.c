@@ -64,6 +64,13 @@ int vp_range_io_run(const uint8_t *data, size_t size)
         size_t  got = 0;
         if (len > sizeof(out)) len = sizeof(out);
         vp_range_io_read(&r, off, len, out, &got);
+        /* Also surface the prefetch window so its length check
+         * is exercised by the same harness.  The window reads
+         * from the archive blob using the declared `off`/`len`
+         * pair (which may be attacker-controlled). */
+        uint8_t window[256];
+        size_t  wgot = 0;
+        vp_prefetch_metadata_window(&r, off, len, window, sizeof(window), &wgot);
         pos += 4;  /* reserved */
     }
     return 0;

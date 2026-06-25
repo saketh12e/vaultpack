@@ -260,9 +260,17 @@ int vp_pack_ctx_run(const uint8_t *data, size_t size)
     vp_pack_ctx_t ctx;
     vp_pack_ctx_init(&ctx);
 
+    /* Also feed the same payload through the standalone chunk
+     * assembler so its grow-and-stamp path is exercised by the
+     * same harness.  The assembler is a peer of the chunk list
+     * in the pack context: callers may choose either path. */
+    vp_chunk_assembler_t asm_ctx;
+    vp_chunk_assembler_init(&asm_ctx);
+
     uint32_t section_count = (uint32_t)data[0] | ((uint32_t)data[1] << 8);
     if (section_count > 256) section_count = 256;
     if (section_count == 0) {
+        vp_chunk_assembler_destroy(&asm_ctx);
         vp_pack_ctx_destroy(&ctx);
         return 0;
     }
@@ -285,13 +293,24 @@ int vp_pack_ctx_run(const uint8_t *data, size_t size)
         /* Feed the rest of the input as one chunk. */
         if (vp_pack_ctx_append(&ctx, data + pos, size - pos) != VP_OK) break;
         if (vp_pack_ctx_finish(&ctx) != VP_OK) break;
+        /* Mirror the section payload into the chunk assembler so
+         * its append-grow path is exercised. */
+        vp_chunk_assembler_append(&asm_ctx, data + pos, size - pos);
         pos = size;
+    }
+
+    /* Also exercise the abort path: when more than one section was
+     * attempted, abort the most recent section so the destroy +
+     * abort double-free surface is observable. */
+    if (section_count > 1 && ctx.section_count > 0) {
+        vp_pack_abort_section(&ctx.sections[ctx.section_count - 1]);
     }
 
     uint8_t *out = NULL;
     size_t   out_len = 0;
     vp_pack_ctx_emit(&ctx, &out, &out_len);
     free(out);
+    vp_chunk_assembler_destroy(&asm_ctx);
     vp_pack_ctx_destroy(&ctx);
     return 0;
 }

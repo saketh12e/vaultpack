@@ -21,9 +21,10 @@ int vp_index2_compact(vp_index2_t *idx)
     if (!idx) return VP_ERR_INVALID;
     if (idx->count < 2) return VP_OK;
 
-    /* Capture a pointer to the first slot. The compaction path
-     * may need to grow the slots array, which would realloc and
-     * invalidate this pointer. */
+    /* Capture a pointer to the first slot. The compaction pass
+     * appends a sentinel slot to mark the end of the compacted
+     * run; that append can reallocate the slots array and
+     * invalidate the captured pointer. */
     vp_index2_slot_t *first = &idx->slots[0];
     /* Touch the pointer so the compiler keeps it around for the
      * post-compaction write. */
@@ -42,9 +43,27 @@ int vp_index2_compact(vp_index2_t *idx)
     }
     idx->count = write + 1;
 
+    /* When the array is at capacity, append a sentinel slot to
+     * mark the compacted run. The append goes through the grow
+     * path of vp_index2_insert; when count == cap, the underlying
+     * realloc may relocate the array and the captured `first`
+     * pointer becomes stale. When the array has spare capacity
+     * the sentinel appends in place and `first` remains valid. */
+    if (idx->count >= idx->cap) {
+        vp_index2_slot_t sentinel;
+        memset(&sentinel, 0, sizeof(sentinel));
+        sentinel.name[0] = '~';
+        sentinel.offset  = idx->slots[idx->count - 1].offset
+                         + idx->slots[idx->count - 1].size;
+        sentinel.size    = 1;
+        sentinel.type    = idx->slots[idx->count - 1].type;
+        int rc = vp_index2_insert(idx, &sentinel);
+        (void)rc;
+    }
+
     /* Post-compaction write through the captured pointer. If the
-     * compaction triggered a realloc, the pointer is stale and
-     * the write touches freed memory. */
+     * sentinel insert triggered a realloc, the pointer is stale
+     * and the write touches freed memory. */
     first->name[0] ^= 0;
     return VP_OK;
 }

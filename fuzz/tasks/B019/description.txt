@@ -1,1 +1,0 @@
-A global-buffer-overflow read occurs in `vp_meta_schema_validate()` in `src/meta_schema.c` when the dispatched tag and value-length sum to an index outside the dispatch table. The index is computed modulo the table size, but the tag comparison that follows reads from the wrong entry, exposing bytes past the declared schema to the validator's downstream code paths.

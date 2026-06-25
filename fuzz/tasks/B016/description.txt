@@ -1,1 +1,0 @@
-A heap-buffer-overflow write occurs in `vp_prefetch_metadata_window()` in `src/prefetch.c` when the declared window length is attacker-controlled. The function does not validate `len` against the archive size before the `memcpy`, so a wrapped or oversized length drives the read past the end of the source buffer into the destination allocation.

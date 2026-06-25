@@ -1,1 +1,0 @@
-A heap-buffer-overflow write occurs in `vp_merge_run()` in `src/archive_merge.c` when the per-source entry counts from two archives are summed into a `uint32_t`. The sum can wrap past zero without triggering an overflow check; the remap table is then allocated at the wrapped size while the fill loop iterates the unwrapped total, writing past the allocation.
