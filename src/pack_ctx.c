@@ -300,8 +300,8 @@ int vp_pack_ctx_run(const uint8_t *data, size_t size)
     }
 
     /* Also exercise the abort path: when more than one section was
-     * attempted, abort the most recent section so the destroy +
-     * abort double-free surface is observable. */
+     * attempted, abort the most recent section so the lifecycle
+     * cleanup pass runs on a section that was already finalized. */
     if (section_count > 1 && ctx.section_count > 0) {
         vp_pack_abort_section(&ctx.sections[ctx.section_count - 1]);
     }
